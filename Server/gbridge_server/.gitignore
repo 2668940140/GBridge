@@ -1,2 +1,5 @@
+#ignore build stuffs
 target
+
+#ignore vscode settings
 .vscode
