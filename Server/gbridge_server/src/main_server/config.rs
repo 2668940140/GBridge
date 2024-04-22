@@ -1,5 +1,6 @@
 use config::{Config, File, FileFormat};
 
+#[derive(Clone)]
 pub struct ServerConfig {
     pub port: i64,
 }
