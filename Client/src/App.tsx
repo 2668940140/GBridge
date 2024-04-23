@@ -7,6 +7,7 @@
 
 import React from 'react';
 import type {PropsWithChildren} from 'react';
+import TcpClientExample from './tcp.js';
 import {
   SafeAreaView,
   ScrollView,
@@ -115,4 +116,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+export default TcpClientExample;
