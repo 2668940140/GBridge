@@ -6,7 +6,20 @@ const TcpClientExample = () => {
   // Server details
   const serverHost = '127.0.0.1'; // Replace with your server's IP address
   const serverPort = 29175; // Replace with your server's port
+  const example_json = {
+    name: "John Doe",
+    age: 30,
+    isStudent: false,
+    courses: ["Math", "Science"],
+    address: {
+      street: "123 Main St",
+      city: "Anytown"
+    }
+  };
+  
   const [success, setSuccess] = useState('false');
+  const [data, setData] = useState(''); // Data received from the server
+  const [request, setRequest] = useState(''); // Data to send to the server
 
   // Function to create and handle the connection
   const handleConnect = () => {
@@ -21,6 +34,8 @@ const TcpClientExample = () => {
         // Send a message after connecting
         client.write('Hello Server!');
         setSuccess('true');
+        setRequest(JSON.stringify(example_json));
+        client.write(request + '\n');
       },
     );
     if (!client) {
@@ -31,6 +46,7 @@ const TcpClientExample = () => {
     client.on('data', data => {
       console.log('Received: ' + data);
       // Optionally process data here
+      setData(data);
     });
 
     client.on('error', error => {
@@ -59,6 +75,7 @@ const TcpClientExample = () => {
     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
       <Text>TCP Connection Example</Text>
       <Button title={success} onPress={handleConnect} />
+      <Text>{data}</Text>
     </View>
   );
 };
