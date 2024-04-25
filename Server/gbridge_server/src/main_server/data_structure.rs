@@ -11,6 +11,7 @@ pub enum RequestType
 
 pub struct Request {
     request_type: RequestType,
+    
     session_id: String,
     data: Json,
 }

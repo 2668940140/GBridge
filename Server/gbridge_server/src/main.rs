@@ -1,5 +1,6 @@
 mod main_server;
-use main_server::config::ServerConfig;
+mod server_config;
+use server_config::ServerConfig;
 
 #[tokio::main]
 async fn main() {
