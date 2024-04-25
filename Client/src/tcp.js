@@ -4,7 +4,7 @@ import TcpSocket from 'react-native-tcp-socket';
 
 const TcpClientExample = () => {
   // Server details
-  const serverHost = '0.0.0.0'; // Replace with your server's IP address
+  const serverHost = '127.0.0.1'; // Replace with your server's IP address
   const serverPort = 29175; // Replace with your server's port
   const [success, setSuccess] = useState('false');
 
