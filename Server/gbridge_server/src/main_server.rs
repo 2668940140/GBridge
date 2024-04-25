@@ -22,7 +22,6 @@ impl MainServer {
             Ok(0) => {
                 // The stream has been closed
                 println!("Connection closed");
-                
             }
             Ok(n) => {
                 println!("Request: {}", String::from_utf8_lossy(&buffer[..n]));
