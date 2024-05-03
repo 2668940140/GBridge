@@ -14,7 +14,7 @@ const TcpClientExample = () => {
       city: "Anytown"
     }
   };
-  const [serverIp, setServerIp] = useState('10.0.0.2');
+  const [serverIp, setServerIp] = useState('10.0.2.2');
   const [serverPort] = useState(29175); // Assuming the port is constant
   const [client, setClient] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('Disconnected');

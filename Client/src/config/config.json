@@ -1,0 +1,7 @@
+// src/config/config.json
+{
+    "server": {
+        "ip": "10.0.2.2",
+        "port": 29175
+    }
+}
