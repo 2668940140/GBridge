@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, ActivityIndicator, StyleSheet } from 'react-native';
 import BaseInterface from './BaseInterface'; 
-import TransferLayer from '../utils/TransferLayer';  // Adjust path as necessary
+import TransferLayer from '../utils/TransferLayer';  
+import { resetNavigator } from '../utils/ResetNavigator';
 
 class LoginInterface extends BaseInterface {
     constructor(props) {
@@ -41,8 +42,7 @@ class LoginInterface extends BaseInterface {
         this.setState({ isLoading: false });  // Stop loading when response is received
         if (response.success) {
             this.displaySuccessMessage("Login Successful");
-            // Navigate to another screen if needed
-            this.props.navigation.navigate('HomeScreen');
+            resetNavigator(this.props.navigation, 'HomeScreen');  // Navigate to Home screen
         } else {
             this.displayErrorMessage("Invalid phonenumber or password");
         }

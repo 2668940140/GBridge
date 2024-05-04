@@ -1,7 +1,8 @@
 // utils/TransferLayer.js
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import TcpSocket from 'react-native-tcp-socket';
 import config from '../config/config.json'; 
+import { AsynLoad, AsynSave, AsynRemove } from './AsynSL';
+import { Alert } from 'react-native';
 
 class TransferLayer {
     constructor() {
@@ -41,16 +42,21 @@ class TransferLayer {
             try {
                 jsonResponse = JSON.parse(data);
                 console.log('Received:', jsonResponse);
-
+                
+                if(jsonResponse.status !== 200) {
+                    console.error('Error:', jsonResponse.extra.error);
+                    Alert.alert('Error', jsonResponse.extra.error);
+                    return;
+                }
                 // Check for session expiry
                 if (jsonResponse.sessionExpired) {
-                    await AsyncStorage.removeItem('sessionToken');
+                    AsynRemove('sessionToken');
                     if (this.onSessionExpired) {
                         this.onSessionExpired();
                     }
                     // Check for session update
                     if (jsonResponse.user) {
-                        await AsyncStorage.setItem('sessionToken', jsonResponse.user);
+                        AsynSave('sessionToken', jsonResponse.user);
                     }
                 }
 
@@ -64,12 +70,7 @@ class TransferLayer {
     }
 
     async sendRequest(requestObject, onResponseReceived) {
-        try{
-            const sessionToken = await AsyncStorage.getItem('sessionToken');
-            requestObject.user = sessionToken; // Append token to every request
-        }catch (error) {
-            console.error('AsyncStorage error: ', error.message);
-        }
+        requestObject.user = await AsynLoad('sessionToken');
         
         this.onResponseReceived = onResponseReceived;
         if (this.socket) {
