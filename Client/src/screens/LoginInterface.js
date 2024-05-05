@@ -4,27 +4,30 @@ import { View, TextInput, Button, ActivityIndicator, StyleSheet } from 'react-na
 import BaseInterface from './BaseInterface'; 
 import TransferLayer from '../utils/TransferLayer';  
 import { resetNavigator } from '../utils/ResetNavigator';
+import VerificationInterface from './VerificationInterface';
 
 class LoginInterface extends BaseInterface {
     constructor(props) {
         super(props);
         this.state = {
-            phonenumber: '',
+            email: '',
+            username: '',
             password: '',
+            verificationCode: '',
             isLoading: false  // Track loading state
         };
         this.transferLayer = new TransferLayer();
     }
 
     initiateLogin = () => {
-        const { phonenumber, password } = this.state;
-        if (phonenumber && password) {
+        const { email, password } = this.state;
+        if (email && password) {
             this.setState({ isLoading: true });  // Start loading
             this.transferLayer.connect().then(() => {
                 this.transferLayer.sendRequest({
                     type: "login",
                     content:{
-                    phonenumber: phonenumber,
+                    email: email,
                     password: password
                     },
                     extra: null
@@ -34,7 +37,7 @@ class LoginInterface extends BaseInterface {
                 this.displayErrorMessage("Failed to connect to server: " + error.message);
             });
         } else {
-            this.displayErrorMessage("Please enter both phonenumber and password");
+            this.displayErrorMessage("Please enter both email and password");
         }
     };
     
@@ -44,7 +47,7 @@ class LoginInterface extends BaseInterface {
             this.displaySuccessMessage("Login Successful");
             resetNavigator(this.props.navigation, 'HomeScreen');  // Navigate to Home screen
         } else {
-            this.displayErrorMessage("Invalid phonenumber or password");
+            this.displayErrorMessage("Invalid email or password");
         }
     };    
 
@@ -57,9 +60,9 @@ class LoginInterface extends BaseInterface {
             <View style={styles.container}>
                 <TextInput
                     style={styles.inputField}
-                    placeholder="phonenumber"
-                    value={this.state.phonenumber}
-                    onChangeText={(text) => this.setState({ phonenumber: text })}
+                    placeholder="email"
+                    value={this.state.email}
+                    onChangeText={(text) => this.setState({ email: text })}
                 />
                 <TextInput
                     style={styles.inputField}
