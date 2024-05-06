@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import TransferLayer from '../utils/TransferLayer';
 import BaseComponent from './BaseComponent';
+import DefaultUserIcon from './src/assets/default_user_icon.png';
 
 class ProfileBoard extends BaseComponent{
     constructor(props) {
@@ -53,7 +54,7 @@ class ProfileBoard extends BaseComponent{
         }
         return (
             <TouchableOpacity style={styles.container} onPress={() => navigation.navigate(targetScreen)}>
-                <Image source={{ uri: userIcon || 'default_icon_placeholder' }} style={styles.icon} />
+                <Image source={{ uri: userIcon || DefaultUserIcon }} style={styles.icon} />
                 <View style={styles.infoContainer}>
                     <Text style={styles.username}>{username}</Text>
                     <Text style={styles.status}>{verified ? 'Verified' : 'Not Verified'}</Text>

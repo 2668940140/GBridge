@@ -3,5 +3,9 @@
     "server": {
         "ip": "10.0.2.2",
         "port": 29175
+    },
+    "connection": {
+        "maxRetries": 5,
+        "retryDelay": 1000
     }
 }

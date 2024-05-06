@@ -22,6 +22,10 @@ class LoanRepaymentList extends BaseComponent {
         });
     }
 
+    componentWillUnmount() {
+        this.transferLayer.closeConnection();
+    }
+
     fetchLoans = () => {
         this.transferLayer.sendRequest({
             type: "getUpcomingRepayments"

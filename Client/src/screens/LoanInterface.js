@@ -11,20 +11,13 @@ class LoanInterface extends BaseInterface {
             loanProducts: [],
             loading: true
         };
-        this.transferLayer = new TransferLayer();
     }
 
     componentDidMount() {
-        this.transferLayer.connect().then(() => {
+        this.establishConnection();
+        if (!this.loading) {
             this.fetchLoanProducts();
-        }).catch(error => {
-            this.setState({ loading: false });
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
-        });
-    }
-
-    componentWillUnmount() {
-        this.transferLayer.disconnect();
+        }
     }
 
     fetchLoanProducts = () => {
@@ -60,7 +53,7 @@ class LoanInterface extends BaseInterface {
         return (
             <View style={styles.container}>
                 <Text>Select a loan product:</Text>
-                {loading && <ActivityIndicator size="large" />}
+                {loading && super.render()}
                 {!loading && <Picker
                     selectedValue={selectedLoanProduct}
                     onValueChange={this.selectLoanProduct}>

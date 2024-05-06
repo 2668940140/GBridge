@@ -17,7 +17,6 @@ class VerificationInterface extends BaseInterface {
             backPhoto: null,
             verificationStatus: ''
         };
-        this.transferLayer = new TransferLayer();
     }
 
     pickImage = (side) => {
@@ -57,21 +56,16 @@ class VerificationInterface extends BaseInterface {
 
         this.setState({ verificationStatus: 'Verification in progress...' });
 
-        this.transferLayer.connect().then(() => {
-            this.transferLayer.sendRequest({
-                type: "verifyIdentity",
-                content: {
-                    name: realName,
-                    idNumber: idNumber,
-                    frontPhoto: frontPhoto,
-                    backPhoto: backPhoto
-                },
-                extra: null
-            }, this.handleVerificationResponse);
-        }).catch(error => {
-            this.setState({ verificationStatus: 'Failed to connect to server' });
-            console.error('TransferLayer connection error: ', error);
-        });
+        this.transferLayer.sendRequest({
+            type: "verifyIdentity",
+            content: {
+                name: realName,
+                idNumber: idNumber,
+                frontPhoto: frontPhoto,
+                backPhoto: backPhoto
+            },
+            extra: null
+        }, this.handleVerificationResponse);
     };
 
     handleVerificationResponse = (response) => {
