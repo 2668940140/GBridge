@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import BaseComponent from './BaseComponent';
 import TransferLayer from '../utils/TransferLayer';
@@ -25,7 +25,7 @@ class MarketComponent extends BaseComponent {
             </Tab.Navigator>
         );
     }
-}
+};
 
 class MarketList extends BaseComponent {
     state = {

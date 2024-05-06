@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, ActivityIndicator, Modal, ScrollView, Text, TouchableOpacity  } from 'react-native';
 import CheckBox from '@react-native-community/checkbox'; 
 import BaseInterface from './BaseInterface';
+import { UsernameInput, PasswordInput } from '../components/RuleTextInput';
+import EmailInput from '../components/EmailInput';
 import TransferLayer from '../utils/TransferLayer';
 import { resetNavigator } from '../utils/ResetNavigator';
 
@@ -10,9 +12,15 @@ class RegisterInterface extends BaseInterface {
     constructor(props) {
         super(props);
         this.state = {
-            phonenumber: '',
+            email: '',
+            emailName: '',
+            emailDomain: '',
             verificationCode: '',
             password: '',
+            passwordValid: false,
+            passwordConfirm: '',
+            username: '',
+            usernameValid: false,
             acceptTerms: false,
             isLoading: false,
             isCodeSent: false,
@@ -22,14 +30,15 @@ class RegisterInterface extends BaseInterface {
     }
 
     sendVerificationCode = () => {
-        const { phonenumber } = this.state;
-        if (phonenumber) {
+        const email = this.state.emailName + '@' + this.state.emailDomain;
+        this.setState({ email: email });
+        if (email) {
             this.setState({ isLoading: true });
             this.transferLayer.connect().then(() => {
                 this.transferLayer.sendRequest({
                     type: "sendVerification",
                     content: {
-                    phonenumber: phonenumber
+                    email: email
                     },
                     extra: null
                 }, this.handleVerificationResponse);
@@ -43,6 +52,7 @@ class RegisterInterface extends BaseInterface {
     };
 
     handleVerificationResponse = (response) => {
+        if(!this.checkResponse("sendVerification", response.preserved)) return;
         this.setState({ isLoading: false });
         if (response.success) {
             this.setState({ isCodeSent: true });
@@ -53,15 +63,19 @@ class RegisterInterface extends BaseInterface {
     };
 
     handleRegister = () => {
-        const { phonenumber, verificationCode, password } = this.state;
-        if (phonenumber && verificationCode && password) {
+        const { email, verificationCode, password, passwordConfirm, username } = this.state;
+        if(password !== passwordConfirm) {
+            this.displayErrorMessage("Passwords do not match");
+        } 
+        else if (email && verificationCode && password && username) {
             this.setState({ isLoading: true });
             this.transferLayer.sendRequest({
                 type: "register",
                 content: {
-                phonenumber: phonenumber,
+                email: email,
                 verificationCode: verificationCode,
-                password: password
+                password: password,
+                username: username
                 },
                 extra: null
             }, this.handleRegisterResponse);
@@ -71,10 +85,11 @@ class RegisterInterface extends BaseInterface {
     };
 
     handleRegisterResponse = (response) => {
+        if(!this.checkResponse("register", response.preserved)) return;
         this.setState({ isLoading: false });
         if (response.success) {
             this.displaySuccessMessage("Registration successful");
-            resetNavigator(this.props.navigation, 'HomeScreen');
+            resetNavigator(this.props.navigation, 'Home');
         } else {
             this.displayErrorMessage("Registration failed. " + response.message);
         }
@@ -118,6 +133,7 @@ class RegisterInterface extends BaseInterface {
             </Modal>
         );
     };
+
     viewTerms = () => {
         this.setState(prevState => ({
             modalVisible: !prevState.modalVisible
@@ -125,15 +141,15 @@ class RegisterInterface extends BaseInterface {
     };
 
     render() {
-        const { isLoading, isCodeSent, acceptTerms } = this.state;
+        const { isLoading, isCodeSent, acceptTerms, emailName, emailDomain } = this.state;
         return (
             <View style={styles.container}>
-                {this.renderModal()}
-                <TextInput
-                    style={styles.inputField}
-                    placeholder="Phone Number"
-                    value={this.state.phonenumber}
-                    onChangeText={text => this.setState({ phonenumber: text })}
+                {this.renderModal()}                
+                <EmailInput
+                    username={emailName}
+                    domain={emailDomain}
+                    onUsernameChange={text => this.setState({ emailName: text })}
+                    onDomainChange={text => this.setState({ emailDomain: text })}
                     editable={!isCodeSent}
                 />
                 {isCodeSent && (
@@ -143,13 +159,22 @@ class RegisterInterface extends BaseInterface {
                             placeholder="Verification Code"
                             value={this.state.verificationCode}
                             onChangeText={text => this.setState({ verificationCode: text })}
+                            keyboardType='number-pad'
+                        />
+                        <UsernameInput
+                        placeholder="Your Username"
+                        onTextChange={(username, isValid) => this.setState({ username, usernameValid: isValid })}
+                        />
+                        <PasswordInput
+                        placeholder="Password"
+                        onTextChange={(password, isValid) => this.setState({ password, passwordValid: isValid })}
                         />
                         <TextInput
                             style={styles.inputField}
-                            placeholder="Password"
+                            placeholder="Password Confirm"
                             secureTextEntry
-                            value={this.state.password}
-                            onChangeText={text => this.setState({ password: text })}
+                            value={this.state.passwordConfirm}
+                            onChangeText={text => this.setState({ passwordConfirm: text })}
                         />
                         <View style={styles.checkboxContainer}>
                             <CheckBox
@@ -165,7 +190,7 @@ class RegisterInterface extends BaseInterface {
                         <Button
                             title="Register"
                             onPress={this.handleRegister}
-                            disabled={isLoading || !acceptTerms}
+                            disabled={isLoading || !acceptTerms || !this.state.usernameValid || !this.state.passwordValid}
                         />
                     </>
                 )}

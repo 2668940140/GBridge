@@ -59,6 +59,8 @@ class TransferLayer {
                         AsynSave('sessionToken', jsonResponse.user);
                     }
                 }
+                
+                jsonResponse.content.preserved = jsonResponse.preserved;
 
                 if (this.onResponseReceived) {
                     this.onResponseReceived(jsonResponse.content);
@@ -71,6 +73,7 @@ class TransferLayer {
 
     async sendRequest(requestObject, onResponseReceived) {
         requestObject.user = await AsynLoad('sessionToken');
+        requestObject.preserved = requestObject.type;
         
         this.onResponseReceived = onResponseReceived;
         if (this.socket) {

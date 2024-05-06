@@ -1,9 +1,9 @@
 import React from 'react';
 import { ScrollView, Text, View, StyleSheet } from 'react-native';
-import ProfileBoard from './components/ProfileBoard';
-import LoanRepaymentList from './components/LoanRepaymentList';
-import ScoreBoard from './components/ScoreBoard';
-import MarketComponent from './components/MarketComponent';
+import ProfileBoard from '../components/ProfileBoard';
+import LoanRepaymentList from '../components/LoanRepaymentList';
+import ScoreBoard from '../components/ScoreBoard';
+import MarketComponent from '../components/MarketComponent';
 
 const HomeScreen = ({ navigation }) => {
     return (

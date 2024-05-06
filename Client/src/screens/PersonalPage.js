@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Button, StyleSheet } from 'react-native';
 import BaseInterface from './BaseInterface';
-import ProfileBoard from './components/ProfileBoard';
-import UserRequests from './components/UserRequests';
+import ProfileBoard from '../components/ProfileBoard';
+import UserRequests from '../components/UserRequests';
 
 class PersonalPage extends BaseInterface {
     constructor(props) {
