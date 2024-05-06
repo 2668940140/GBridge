@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        marginVertical: 10,
         width: '100%',
     },
     input: {

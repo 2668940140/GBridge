@@ -24,6 +24,7 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginVertical: 10,
     },
     input: {
         flex: 1,  // Take up all available space except what the button needs.
