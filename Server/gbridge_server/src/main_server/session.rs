@@ -1,8 +1,11 @@
-struct Session
+use std::{collections::HashMap, sync::Arc};
+
+use futures::lock::Mutex;
+pub struct Session
 {
 }
 
-struct Sessions
+pub struct Sessions
 {
-  sessions: HashMap<String, Session>,
+  sessions: HashMap<String, Arc<Mutex<Session>>>,
 }

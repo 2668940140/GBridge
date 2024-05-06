@@ -1,4 +1,4 @@
-use serde_json::Value as Json;
+pub use serde_json::Value as Json;
 use std::collections::VecDeque;
 
 pub enum RequestType
@@ -10,15 +10,15 @@ pub enum RequestType
 }
 
 pub struct Request {
-  request_type: RequestType,
+  pub request_type: RequestType,
   
-  session_id: String,
-  data: Json,
+  pub session_id: String,
+  pub data: Json,
 }
 
 pub struct Response {
-  session_id: String,
-  data: Json,
+  pub session_id: String,
+  pub data: Json,
 }
 
 pub type RequestQueue = VecDeque<Request>;
