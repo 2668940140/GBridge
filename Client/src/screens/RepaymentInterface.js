@@ -12,16 +12,13 @@ class RepaymentInterface extends BaseInterface {
             paymentDetails: null,
             loading: false
         };
-        this.transferLayer = new TransferLayer();
     }
 
     componentDidMount() {
-        this.transferLayer.connect().then(() => {
+        this.establishConnection();
+        if (!this.loading) {
             this.requestUpcomingPaymentDetails();
-        }).catch(error => {
-            this.setState({ loading: false });
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
-        });
+        }
     }
 
     requestUpcomingPaymentDetails = () => {

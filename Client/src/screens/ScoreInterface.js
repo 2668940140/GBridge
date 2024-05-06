@@ -12,24 +12,21 @@ class ScoreInterface extends BaseInterface {
             suggestion: '',
             loading: true
         };
-        this.transferLayer = new TransferLayer();
     }
 
     componentDidMount() {
-        this.transferLayer.connect().then(() => {
-            this.transferLayer.sendRequest({
-                type: "getScoreDetails",
-                content: {},
-                extra: null
-            }, this.handleScoreDetailsResponse);
-        }).catch(error => {
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
-            this.setState({ loading: false });
-        });
+        this.establishConnection();
+        if (!this.loading) {
+            this.getScoreDetails();
+        }
     }
 
-    componentWillUnmount() {
-        this.transferLayer.closeConnection();
+    getScoreDetails = () => {
+        this.transferLayer.sendRequest({
+            type: "getScoreDetails",
+            content: {},
+            extra: null
+        }, this.handleScoreDetailsResponse);
     }
 
     handleScoreDetailsResponse = (response) => {
@@ -54,13 +51,7 @@ class ScoreInterface extends BaseInterface {
     render() {
         const { score, info, suggestion, loading } = this.state;
 
-        if (loading) {
-            return (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#0000ff" />
-                </View>
-            );
-        }
+        if (loading) return super.render();
 
         return (
             <View style={styles.container}>

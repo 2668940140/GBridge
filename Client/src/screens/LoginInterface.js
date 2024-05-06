@@ -22,7 +22,6 @@ class LoginInterface extends BaseInterface {
             isLoading: false,
             isCodeSent: false
         };
-        this.transferLayer = new TransferLayer();
     }
 
     switchTab = (tab) => {
@@ -51,22 +50,17 @@ class LoginInterface extends BaseInterface {
         
         if (type !== "") {
             this.setState({ isLoading: true });  // Start loading
-            this.transferLayer.connect().then(() => {
-                this.transferLayer.sendRequest({
-                    type: "login",
-                    content:{
-                        email: email,
-                        password: password,
-                        verificationCode: verificationCode,
-                        username: username,
-                        loginType: type
-                    },
-                    extra: null
-                }, this.handleServerResponse);
-            }).catch(error => {
-                this.setState({ isLoading: false });  // Stop loading on error
-                this.displayErrorMessage("Failed to connect to server: " + error.message);
-            });
+            this.transferLayer.sendRequest({
+                type: "login",
+                content:{
+                    email: email,
+                    password: password,
+                    verificationCode: verificationCode,
+                    username: username,
+                    loginType: type
+                },
+                extra: null
+            }, this.handleServerResponse);
         } else {
             this.displayErrorMessage("Please enter both " + activeTab + " and " + activeVerification);
         }
@@ -120,23 +114,9 @@ class LoginInterface extends BaseInterface {
         }
     };
 
-    componentWillUnmount() {
-        this.transferLayer.closeConnection();
-    }
-
-    componentDidMount() {
-        this.transferLayer.connect().then(() => {
-            this.TransferLayer.sendRequest({
-                type: "checkSession",
-                content: null,
-                extra: null
-            });
-        }).catch(error => {
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
-        });
-    }
-
     render() {
+        if(this.loading)
+            return super.render();
         const { activeTab, activeVerification, username, password, emailName, emailDomain } = this.state;
         return (
             <View style={styles.container}>

@@ -15,7 +15,6 @@ class LoanAppDetail extends BaseInterface {
             agreementAccepted: false,
             isLoading: false
         };
-        this.transferLayer = new TransferLayer();
     }
 
     submitLoanDetails = () => {

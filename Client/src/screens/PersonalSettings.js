@@ -5,7 +5,7 @@ import { ActivityIndicator } from 'react-native';
 import { UsernameInput, PasswordInput } from '../components/RuleTextInput';
 import ImagePicker from 'react-native-image-picker';
 import BaseInterface from '../components/BaseComponent';
-import TransferLayer from '../utils/TransferLayer';
+import DefaultUserIcon from './src/assets/default_user_icon.png';
 
 class PersonalSettings extends BaseInterface {
     constructor(props) {
@@ -25,16 +25,13 @@ class PersonalSettings extends BaseInterface {
             loading: true,  // Initial state for loading
             isLoading: false
         };
-        this.transferLayer = new TransferLayer();
     }
     
     componentDidMount() {
-        this.transferLayer.connect().then(() => {
+        this.establishConnection();
+        if (!this.loading) {
             this.fetchUserData();
-        }).catch(error => {
-            this.setState({ loading: false });
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
-        });
+        }
     }
     
     fetchUserData = () => {
@@ -121,22 +118,13 @@ class PersonalSettings extends BaseInterface {
         resetNavigator(this.props.navigation, 'VerificationInterface');
     };
 
-    componentWillUnmount() {
-        this.transferLayer.closeConnection();
-    }
     render() {
-        const { mode, username, userIcon, passwordConfirm, newPassword, verified, loading } = this.state;
-        if (loading) {
-            return (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#0000ff" />
-                </View>
-            );
-        }
+        const { mode, username, userIcon, passwordConfirm, verified, loading } = this.state;
+        if (loading) return super.render();  // Show loading indicator
     
         return (
             <View style={styles.container}>
-                <Image source={{ uri: userIcon || 'default_icon_placeholder' }} style={styles.icon} />
+                <Image source={{ uri: userIcon || DefaultUserIcon }} style={styles.icon} />
                 <Text>Username: {username}</Text>
                 <Text>Email: {this.props.email}</Text>
                 <Text>{verified ? 'Verified' : 'Not Verified'}</Text>
@@ -178,6 +166,9 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    activityIndicator: {
+        transform: [{ scale: 1.5 }]  // Adjust scale as needed
     },
     container: {
         flex: 1,

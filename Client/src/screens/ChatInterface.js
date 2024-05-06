@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet, Button, FlatList, Image, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
 import TransferLayer from '../utils/TransferLayer';
 import BaseInterface from './BaseInterface';
+import DefaultUserIcon from './src/assets/default_user_icon.png';
 
 class ChatInterface extends BaseInterface {
     constructor(props) {
@@ -13,20 +14,12 @@ class ChatInterface extends BaseInterface {
             userInput: '',
             loading: true
         };
-        this.transferLayer = new TransferLayer();
     }
 
     componentDidMount() {
-        this.transferLayer.connect().then(() => {
+        this.establishConnection();
+        if(!this.state.loading)
             this.fetchinitialMessages();
-        }).catch(error => {
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
-            this.setState({ loading: false });
-        });
-    }
-
-    componentWillUnmount() {
-        this.transferLayer.closeConnection();
     }
 
     fetchinitialMessages = () => {
@@ -40,6 +33,8 @@ class ChatInterface extends BaseInterface {
     handleInitialMessagesResponse = (response) => {
         if (response.success) {
             this.setState({ userIcon: response.data.userIcon, responseIcon: response.data.responseIcon });
+            if(this.state.userIcon === null) this.setState({ userIcon: DefaultUserIcon });
+            if(this.state.responseIcon === null) this.setState({ responseIcon: DefaultUserIcon });
         } else {
             this.displayErrorMessage("Failed to fetch initial messages.");
         }
@@ -93,7 +88,7 @@ class ChatInterface extends BaseInterface {
                 styles.messageContainer,
                 isUser ? styles.userMessage : styles.responseMessage
             ]}>
-                <Image source={{ uri: isUser ? 'user_icon_placeholder' : 'response_icon_placeholder' }} style={styles.avatar} />
+                <Image source={{ uri: isUser ? this.userIcon : this.responseIcon }} style={styles.avatar} />
                 <Text style={styles.messageText}>{item.text}</Text>
             </View>
         );
@@ -101,7 +96,7 @@ class ChatInterface extends BaseInterface {
 
     render() {
         const { messages, userInput, loading } = this.state;
-        if(loading) return (<ActivityIndicator size="large" color="#0000ff" />);
+        if(loading) return super.render();
 
         return (
             <KeyboardAvoidingView style={styles.container} behavior="padding">

@@ -26,7 +26,6 @@ class RegisterInterface extends BaseInterface {
             isCodeSent: false,
             modalVisible: false
         };
-        this.transferLayer = new TransferLayer();
     }
 
     sendVerificationCode = () => {
@@ -34,31 +33,24 @@ class RegisterInterface extends BaseInterface {
         this.setState({ email: email });
         if (email) {
             this.setState({ isLoading: true });
-            this.transferLayer.connect().then(() => {
-                this.transferLayer.sendRequest({
-                    type: "sendVerification",
-                    content: {
-                    email: email
-                    },
-                    extra: null
-                }, this.handleVerificationResponse);
-            }).catch(error => {
-                this.setState({ isLoading: false });
-                this.displayErrorMessage("Failed to connect to server: " + error.message);
-            });
+            this.transferLayer.sendRequest({
+                type: "sendVerification",
+                content: {
+                email: email
+                },
+                extra: null
+            }, this.handleVerificationResponse);
         } else {
-            this.displayErrorMessage("Please enter your phone number");
+            this.displayErrorMessage("Please enter your email");
         }
     };
 
     handleVerificationResponse = (response) => {
-        this.setState({ isLoading: false, isCodeSent: true });
-        return;
         if(!this.checkResponse("sendVerification", response.preserved)) return;
         this.setState({ isLoading: false });
         if (response.success) {
             this.setState({ isCodeSent: true });
-            this.displaySuccessMessage("Verification code sent. Please check your SMS messages.");
+            this.displaySuccessMessage("Verification code sent. Please check your mailbox.");
         } else {
             this.displayErrorMessage("Failed to send verification code. Please try again.");
         }
@@ -87,9 +79,6 @@ class RegisterInterface extends BaseInterface {
     };
 
     handleRegisterResponse = (response) => {
-        this.setState({ isLoading: false, isCodeSent: true });
-        resetNavigator(this.props.navigation, 'Home');
-        return;
         if(!this.checkResponse("register", response.preserved)) return;
         this.setState({ isLoading: false });
         if (response.success) {
@@ -99,10 +88,6 @@ class RegisterInterface extends BaseInterface {
             this.displayErrorMessage("Registration failed. " + response.message);
         }
     };
-
-    componentWillUnmount() {
-        this.transferLayer.closeConnection();
-    }
 
     // Add methods to handle checkbox and terms viewing
     toggleCheckBox = () => {
@@ -146,6 +131,8 @@ class RegisterInterface extends BaseInterface {
     };
 
     render() {
+        if(this.loading)
+            return super.render();
         const { isLoading, isCodeSent, acceptTerms, emailName, emailDomain } = this.state;
         return (
             <View style={styles.container}>

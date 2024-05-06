@@ -27,7 +27,7 @@ class UserRequests extends BaseComponent {
     }
 
     componentWillUnmount() {
-        this.transferLayer.disconnect();
+        this.transferLayer.closeConnection();
     }
 
     fetchRequests = () => {

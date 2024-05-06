@@ -12,10 +12,9 @@ class InvestmentInterface extends BaseInterface {
             lockPeriod: '',
             creditRating: '',
             loanType: '',
-            loading: false,
+            isLoading: false,
             isSubmitted: false
         };
-        this.transferLayer = new TransferLayer();
     }
     
 
@@ -35,7 +34,7 @@ class InvestmentInterface extends BaseInterface {
     };
 
     render() {
-        const { investmentAmount, expectedReturn, lockPeriod, creditRating, loanType, loading, isSubmitted } = this.state;
+        const { investmentAmount, expectedReturn, lockPeriod, creditRating, loanType, isLoading, isSubmitted } = this.state;
     
         return (
             <ScrollView style={styles.container}>
@@ -81,8 +80,8 @@ class InvestmentInterface extends BaseInterface {
                     <Picker.Item label="Mortgage Loan" value="mortgage" />
                     <Picker.Item label="Auto Loan" value="auto" />
                 </Picker>
-                <Button title="Submit" onPress={this.handleSubmit} disabled={loading || isSubmitted} />
-                {loading && <ActivityIndicator size="large" color="#0000ff" />}
+                <Button title="Submit" onPress={this.handleSubmit} disabled={isLoading || isSubmitted} />
+                {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
             </ScrollView>
         );
     }    

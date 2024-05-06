@@ -7,6 +7,9 @@ import { Alert } from 'react-native';
 class TransferLayer {
     constructor() {
         this.socket = null;
+        this.retryCount = 0;
+        this.maxRetries = config.connection.maxRetries;
+        this.retryDelay = config.connection.retryDelay;
     }
 
     connect() {
@@ -18,12 +21,22 @@ class TransferLayer {
                 }, () => {
                     console.log('Connected to server!');
                     this.setupResponseHandler();
+                    this.retryCount = 0;
                     resolve();
                 });
 
                 this.socket.on('error', (error) => {
                     console.error('Socket error:', error);
-                    reject(error);
+                    this.socket.destroy();
+                    this.socket = null; // Cleanup the socket on error
+                    if (this.retryCount < this.maxRetries) {
+                        this.retryCount++;
+                        console.log(`Retry ${this.retryCount}/${this.maxRetries} in ${this.retryDelay/1000} seconds...`);
+                        setTimeout(() => this.connect().then(resolve).catch(reject), this.retryDelay);
+                    } else {
+                        console.log('Max retries reached, giving up.');
+                        reject(error);
+                    }
                 });
 
                 this.socket.on('close', () => {
@@ -31,7 +44,15 @@ class TransferLayer {
                     this.socket = null;
                 });
             } else {
-                resolve(); // Already connected
+                console.log("Attempt to connect when socket already exists.");
+                if (this.socket.destroyed || this.socket.closing) {
+                    console.log("Existing socket is closing or destroyed, retrying connection.");
+                    this.socket = null;
+                    return this.connect().then(resolve).catch(reject);
+                } else {
+                    console.log("Using existing connection.");
+                    resolve(); // Use existing connection if it's active
+                }
             }
         });
     }
@@ -76,6 +97,17 @@ class TransferLayer {
         requestObject.preserved = requestObject.type;
         
         this.onResponseReceived = onResponseReceived;
+
+        if (!this.socket || this.socket.destroyed || this.socket.closing) {
+            console.log('No connection established, attempting to connect...');
+            try {
+                await this.connect(); // Assume connect returns a promise that resolves when connected
+                console.log('Connection established successfully.');
+            } catch (error) {
+                console.error('Failed to establish connection:', error);
+                return; // Exit the function if connection cannot be established
+            }
+        }
         if (this.socket) {
             const jsonRequest = JSON.stringify(requestObject);
             this.socket.write(jsonRequest, 'utf8', () => {

@@ -16,16 +16,9 @@ class MatchInterface extends BaseInterface {
     }
 
     componentDidMount() {
-        this.transferLayer.connect().then(() => {
+        this.establishConnection();
+        if(!this.loading)
             this.fetchMatchData();
-        }).catch(error => {
-            this.setState({ loading: false });
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
-        });
-    }
-
-    componentWillUnmount() {
-        this.transferLayer.disconnect();
     }
 
     fetchMatchData = () => {
