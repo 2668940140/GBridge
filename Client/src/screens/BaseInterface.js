@@ -1,4 +1,4 @@
-// components/BaseInterface.js
+// screens/BaseInterface.js
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
@@ -13,4 +13,13 @@ export default class BaseInterface extends React.Component {
     }
 
     // More common methods can be added here
+    checkResponse(expected, received) {
+        if(response.preserved !== "login")
+        {
+            console.log("Preserved request not matched");
+            console.log("expected: login, get " + response.preserved + " instead");
+            return false;
+        }
+        return true;
+    }
 }

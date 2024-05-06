@@ -3,7 +3,7 @@ import { View, Text, TextInput, StyleSheet, Button, FlatList, Image, KeyboardAvo
 import TransferLayer from '../utils/TransferLayer';
 import BaseInterface from './BaseInterface';
 
-class AdviceInterface extends BaseInterface {
+class ChatInterface extends BaseInterface {
     constructor(props) {
         super(props);
         this.state = {
@@ -105,7 +105,7 @@ class AdviceInterface extends BaseInterface {
 
         return (
             <KeyboardAvoidingView style={styles.container} behavior="padding">
-                <Text style={styles.title}>Advice Chat</Text>
+                <Text style={styles.title}>{this.props.chatType} Chat</Text>
                 <FlatList
                     data={messages}
                     renderItem={this.renderMessageItem}
@@ -176,4 +176,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default AdviceInterface;
+export default ChatInterface;

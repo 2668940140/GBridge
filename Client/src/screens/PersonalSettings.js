@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, TextInput, Button, Text, StyleSheet, Image, TouchableOpacity} from 'react-native';
 import { ActivityIndicator } from 'react-native';
+import { UsernameInput, PasswordInput } from '../components/RuleTextInput';
 import ImagePicker from 'react-native-image-picker';
 import BaseInterface from '../components/BaseComponent';
 import TransferLayer from '../utils/TransferLayer';
@@ -12,10 +13,12 @@ class PersonalSettings extends BaseInterface {
         this.state = {
             username: '',
             newUsername: '',
-            phoneNumber: '',
+            newUsernameValid: true,
+            email: '',
             userIcon: null,
             newIcon: null,
             newPassword: '',
+            newPasswordValid: true,
             passwordConfirm: '',
             verified: false,
             mode: 'view',
@@ -44,10 +47,10 @@ class PersonalSettings extends BaseInterface {
     
     handleUserDataResponse = (response) => {
         if (response.success) {
-            const { username, phoneNumber, userIcon, verified } = response.data;
+            const { username, email, userIcon, verified } = response.data;
             this.setState({
                 username,
-                phoneNumber,
+                email,
                 userIcon,
                 verified,
                 loading: false  // Stop the loading indicator
@@ -135,7 +138,7 @@ class PersonalSettings extends BaseInterface {
             <View style={styles.container}>
                 <Image source={{ uri: userIcon || 'default_icon_placeholder' }} style={styles.icon} />
                 <Text>Username: {username}</Text>
-                <Text>Phone Number: {this.props.phoneNumber}</Text>
+                <Text>Email: {this.props.email}</Text>
                 <Text>{verified ? 'Verified' : 'Not Verified'}</Text>
     
                 {mode === 'view' ? (
@@ -148,10 +151,18 @@ class PersonalSettings extends BaseInterface {
                         <TouchableOpacity onPress={this.pickImage}>
                             <Text>Upload New Icon</Text>
                         </TouchableOpacity>
-                        <TextInput value={username} onChangeText={text => this.setState({ newUsername: text })} placeholder="New username" />
-                        <TextInput secureTextEntry value={newPassword} onChangeText={text => this.setState({ newPassword: text })} placeholder="New Password" />
+                        <UsernameInput
+                        placeholder="New Username"
+                        allowEmpty={true}
+                        onTextChange={(username, isValid) => this.setState({ newUsername: username, newUsernameValid: isValid})}
+                        />
+                        <PasswordInput
+                        placeholder="New Password"
+                        allowEmpty={true}
+                        onTextChange={(password, isValid) => this.setState({ newPassword: password, newPasswordValid: isValid})}
+                        />
                         <TextInput secureTextEntry value={passwordConfirm} onChangeText={text => this.setState({ passwordConfirm: text })} placeholder="Confirm New Password" />
-                        <Button title="Confirm Changes" onPress={this.handleConfirmPress} disabled={this.state.isLoading}/>
+                        <Button title="Confirm Changes" onPress={this.handleConfirmPress} disabled={this.state.isLoading || !this.state.newPasswordValid || !this.state.newUsernameValid }/>
                         {this.state.isLoading && (
                         <ActivityIndicator size="large" color="#0000ff" />
                         )}
