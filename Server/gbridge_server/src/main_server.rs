@@ -3,42 +3,37 @@ mod data_structure;
 mod utils;
 mod database;
 mod session;
-use crate::main_server::data_structure::Response;
 use crate::ServerConfig;
-use config::Value;
 use data_structure::{RequestQueue, ResponseQueue, Json};
-use futures::future::err;
 use mongodb::bson::doc;
 use serde_json::json;
 
-use std::f64::consts::E;
 use std::sync::{Arc, Mutex};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::spawn;
 
-use self::data_structure::Request;
+use self::database::Db;
 
 pub struct MainServer
 {
   config: ServerConfig,
   request_queue: Arc<Mutex<RequestQueue>>,
   response_queue: Arc<Mutex<ResponseQueue>>,
-  db : Option<database::Db>,
+  db : Option<Arc<database::Db>>,
   listener : Option<TcpListener>
 }
 
 impl MainServer {
   async fn initialize(&mut self)
   {
-    self.db = Some(database::Db::new(&self.config.db_uri).await);
+    self.db = Some(Arc::new(database::Db::new(&self.config.db_uri).await));
     self.listener = Some(
       TcpListener::bind(format!("127.0.0.1:{}", self.config.port))
         .await.unwrap());
     println!("Server started at {}", self.config.port);
   }
 
-  async fn register_worker(&mut self ,request : &Json) -> Result<Json,()>
+  async fn register_worker(request : &Json, db : Arc<Db>) -> Result<Json,()>
   {
     let content = request.get("content").
     and_then(|c| c.as_object());
@@ -49,9 +44,8 @@ impl MainServer {
     let email = content.get("email").and_then(|e| e.as_str());
     let username = content.get("username").and_then(|u| u.as_str());
     let password = content.get("password").and_then(|p| p.as_str());
-    let verificationcode = content.get("verificationcode").and_then(|v| v.as_str());
 
-    if email.is_none() || username.is_none() || password.is_none() || verificationcode.is_none() {
+    if email.is_none() || username.is_none() || password.is_none() {
       return Err(());
     }
 
@@ -61,15 +55,13 @@ impl MainServer {
     let email = email.unwrap();
     let username = username.unwrap();
     let password = password.unwrap();
-    let verificationcode = verificationcode.unwrap();
 
-    let db = self.db.as_ref().unwrap();
     let response = db.users_base_info.insert_one(doc! {
       "email": email,
       "username": username,
       "password": password,
-      "verificationcode": verificationcode
     }, None).await;
+
     if response.is_err() {
       return Err(());
     }
@@ -78,7 +70,6 @@ impl MainServer {
       return Ok(json!({
         "status": 200,
         "user": username,
-        "sessionExpired": false,
         "preserved": preserved,
         "content": {
             "success": true, 
@@ -87,11 +78,13 @@ impl MainServer {
     }
   }
 
-  async fn handle_stream(&mut self, mut stream : TcpStream)
+  async fn handle_stream(mut stream : TcpStream, db : Arc<Db>)
   {
     let mut buf = [0; 1024];
     loop {
+      println!("Reading");
       let n = stream.read(&mut buf).await.unwrap();
+      println!("Read {} bytes", n);
       if n == 0 {
         return;
       }
@@ -116,7 +109,7 @@ impl MainServer {
           let request_type = requset_type.unwrap().as_str().unwrap();
           let response : Result<Json, ()> = match request_type {
             "register" => {
-              self.register_worker(&request_json).await
+              Self::register_worker(&request_json, db.clone()).await
             }
             _ => {
               Err(())
@@ -138,7 +131,7 @@ impl MainServer {
 
       if !ok {
         let response = serde_json::json!({
-          "status": "error",
+          "status": 404,
         });
         let response = serde_json::to_string(&response).unwrap();
         stream.write_all(response.as_bytes()).await.unwrap();
@@ -152,8 +145,10 @@ impl MainServer {
     self.initialize().await;
 
     loop {
-      let (mut stream, _) = self.listener.as_ref().unwrap().accept().await.unwrap();
-      self.handle_stream(stream);
+      println!("Waiting for connection");
+      let (stream, _) = self.listener.as_ref().unwrap().accept().await.unwrap();
+      println!("New connection");
+      tokio::spawn(Self::handle_stream(stream, self.db.as_ref().unwrap().clone()));
     }
   }
 
