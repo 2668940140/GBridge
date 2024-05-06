@@ -9,9 +9,9 @@ use mongodb::{
 
 pub struct Db
 {
-  client: Client,
-  user_db : Database,
-  users_base_info : Collection<Document>
+  pub client: Client,
+  pub user_db : Database,
+  pub users_base_info : Collection<Document>
 }
 
 impl Db {

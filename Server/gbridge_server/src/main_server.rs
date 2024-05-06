@@ -5,9 +5,13 @@ mod database;
 mod session;
 use crate::main_server::data_structure::Response;
 use crate::ServerConfig;
+use config::Value;
 use data_structure::{RequestQueue, ResponseQueue, Json};
+use futures::future::err;
+use mongodb::bson::doc;
 use serde_json::json;
 
+use std::f64::consts::E;
 use std::sync::{Arc, Mutex};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -34,11 +38,53 @@ impl MainServer {
     println!("Server started at {}", self.config.port);
   }
 
-  async fn register_worker(&mut self ,request : &Json) -> Json
+  async fn register_worker(&mut self ,request : &Json) -> Result<Json,()>
   {
-    json!({
-      "Message": "You send a register request"
-    })
+    let content = request.get("content").
+    and_then(|c| c.as_object());
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+    let email = content.get("email").and_then(|e| e.as_str());
+    let username = content.get("username").and_then(|u| u.as_str());
+    let password = content.get("password").and_then(|p| p.as_str());
+    let verificationcode = content.get("verificationcode").and_then(|v| v.as_str());
+
+    if email.is_none() || username.is_none() || password.is_none() || verificationcode.is_none() {
+      return Err(());
+    }
+
+    let preserved = request.get("preserved").and_then(|p| p.as_object());
+
+
+    let email = email.unwrap();
+    let username = username.unwrap();
+    let password = password.unwrap();
+    let verificationcode = verificationcode.unwrap();
+
+    let db = self.db.as_ref().unwrap();
+    let response = db.users_base_info.insert_one(doc! {
+      "email": email,
+      "username": username,
+      "password": password,
+      "verificationcode": verificationcode
+    }, None).await;
+    if response.is_err() {
+      return Err(());
+    }
+    else
+    {
+      return Ok(json!({
+        "status": 200,
+        "user": username,
+        "sessionExpired": false,
+        "preserved": preserved,
+        "content": {
+            "success": true, 
+        }
+      }));
+    }
   }
 
   async fn handle_stream(&mut self, mut stream : TcpStream)
@@ -68,20 +114,24 @@ impl MainServer {
         else
         {
           let request_type = requset_type.unwrap().as_str().unwrap();
-          let response: Json = match request_type {
+          let response : Result<Json, ()> = match request_type {
             "register" => {
               self.register_worker(&request_json).await
             }
             _ => {
-              let response = serde_json::json!({
-                "status": "error",
-              });
-              response
+              Err(())
             }
           };
-          let response = serde_json::to_string(&response).unwrap();
-          stream.write_all(response.as_bytes()).await.unwrap();
-          ok = true;
+          if response.is_err()
+          {
+            ok = false;
+          }
+          else {
+            let response = response.unwrap();
+            let response = serde_json::to_string(&response).unwrap();
+            stream.write_all(response.as_bytes()).await.unwrap();
+            ok = true;
+          }
         }
       }
 
