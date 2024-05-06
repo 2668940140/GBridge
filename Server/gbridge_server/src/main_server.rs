@@ -30,20 +30,26 @@ impl MainServer {
     println!("Server started at {}", self.config.port);
   }
 
-  async fn handle_request(mut stream: TcpStream, request_queue: Arc<Mutex<RequestQueue>>) {
+  async fn handle_request(mut stream: TcpStream) {
     let mut buffer = [0; 512];
-    match stream.read(&mut buffer).await {
-      Ok(0) => {
-        // The stream has been closed
-        println!("Connection closed");
+    loop {
+      match stream.read(&mut buffer).await {
+          Ok(bytes_read) => {
+              if bytes_read == 0 {
+                  return; // Connection was closed
+              }
+              // Echo the data back
+              if let Err(e) = stream.write_all(&buffer[0..bytes_read]).await {
+                  eprintln!("Failed to send data: {}", e);
+                  return;
+              }
+          }
+          Err(e) => {
+              eprintln!("Failed to read data: {}", e);
+              return;
+          }
       }
-      Ok(n) => {
-        println!("Request: {}", String::from_utf8_lossy(&buffer[..n]));
-      }
-      Err(e) => {
-        eprintln!("Failed to read from socket: {}", e);
-      }
-    }
+  }
   }
 
   pub async fn run(&mut self) {
@@ -51,7 +57,7 @@ impl MainServer {
 
     loop {
       let (stream, _) = self.listener.as_ref().unwrap().accept().await.unwrap();
-      spawn(MainServer::handle_request(stream, self.request_queue.clone()));
+      spawn(MainServer::handle_request(stream));
     }
   }
 
