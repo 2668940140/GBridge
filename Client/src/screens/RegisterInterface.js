@@ -52,6 +52,8 @@ class RegisterInterface extends BaseInterface {
     };
 
     handleVerificationResponse = (response) => {
+        this.setState({ isLoading: false, isCodeSent: true });
+        return;
         if(!this.checkResponse("sendVerification", response.preserved)) return;
         this.setState({ isLoading: false });
         if (response.success) {
@@ -85,6 +87,9 @@ class RegisterInterface extends BaseInterface {
     };
 
     handleRegisterResponse = (response) => {
+        this.setState({ isLoading: false, isCodeSent: true });
+        resetNavigator(this.props.navigation, 'Home');
+        return;
         if(!this.checkResponse("register", response.preserved)) return;
         this.setState({ isLoading: false });
         if (response.success) {
@@ -212,7 +217,7 @@ const styles = StyleSheet.create({
     },
     inputField: {
         width: '100%',
-        marginBottom: 20,
+        marginVertical: 10,
         borderColor: 'gray',
         borderWidth: 1,
         padding: 10
@@ -220,13 +225,12 @@ const styles = StyleSheet.create({
     checkboxContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
     },
     checkbox: {
-        margin: 8,
+        marginHorizontal: 8,
     },
     label: {
-        margin: 8,
+        marginVertical: 8,
     },
     viewTerms: {
         color: 'blue',

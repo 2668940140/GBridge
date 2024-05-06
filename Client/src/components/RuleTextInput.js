@@ -57,7 +57,7 @@ class RuleTextInput extends Component {
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: 20,
+        marginVertical: 10,
         width: '100%',
     },
     input: {

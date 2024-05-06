@@ -222,14 +222,14 @@ const styles = StyleSheet.create({
     },
     input: {
         width: '100%',
-        marginBottom: 20,
+        marginVertical: 10,
         borderColor: 'gray',
         borderWidth: 1,
         padding: 10
     },
     tabContainer: {
         flexDirection: 'row',
-        marginBottom: 20
+        marginBottom: 10
     },
     tab: {
         flex: 1,
@@ -242,8 +242,8 @@ const styles = StyleSheet.create({
         borderBottomColor: 'blue'
     },
     switchText: {
-        marginTop: 10,
-        color: 'blue'
+        color: 'blue',
+        marginBottom: 10
     }
 });
 

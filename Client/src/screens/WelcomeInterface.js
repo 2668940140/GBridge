@@ -5,12 +5,10 @@ import BaseInterface from './BaseInterface';  // Make sure the import path is co
 
 class WelcomeInterface extends BaseInterface {
     handleLoginPress = () => {
-        this.displaySuccessMessage("Navigating to Login Screen...");
         this.props.navigation.navigate('Login');
     };
 
     handleRegisterPress = () => {
-        this.displaySuccessMessage("Navigating to Register Screen...");
         this.props.navigation.navigate('Register');
     };
 
@@ -18,10 +16,12 @@ class WelcomeInterface extends BaseInterface {
         return (
             <View style={styles.container}>
                 <Button
+                    style={styles.button}
                     title="Login"
                     onPress={this.handleLoginPress}
                 />
                 <Button
+                    style={styles.button}
                     title="Register"
                     onPress={this.handleRegisterPress}
                 />
@@ -34,7 +34,12 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        width: '100%'
+    },
+    button: {
+        marginVertical: 10,
+        width: '80%'
     }
 });
 
