@@ -294,7 +294,8 @@ impl main_server::MainServer
       "period": period,
       "method": method,
       "description": description,
-      "extra": extra
+      "extra": extra,
+      "created_time": chrono::Utc::now().to_rfc3339(),
     };
 
     let response = db.public_market.insert_one(entry, None).await;

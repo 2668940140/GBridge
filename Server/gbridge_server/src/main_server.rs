@@ -142,7 +142,7 @@ impl MainServer {
             response.as_object_mut().unwrap().
             insert(String::from("username"), json!(username.clone()));
             response.as_object_mut().unwrap().
-            insert(String::from("time"), json!(chrono::Utc::now().timestamp()));
+            insert(String::from("time"), json!(chrono::Utc::now().to_rfc3339()));
             
             let response = serde_json::to_string(&response).unwrap();
             stream.write_all(response.as_bytes()).await.unwrap();
