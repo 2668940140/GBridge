@@ -1,4 +1,5 @@
 use std::{collections::HashMap, sync::Arc, vec};
+use chrono::{DateTime, Utc};
 use crate::main_server::database::Db;
 
 use tokio::sync::Mutex;
@@ -13,6 +14,8 @@ pub struct Session
   pub expenditure : Option<f64>, // monthly expenditure
   pub debt : Option<f64>,
   pub assets : Option<f64>,
+
+  last_active_time: DateTime<Utc>,
 }
 
 lazy_static! {
@@ -40,20 +43,38 @@ impl Sessions
     }
   }
 
-  pub fn add_session(&mut self, username: String)
+  pub async fn add_session(&mut self, username: String)
   {
+    if let Some(s) = self.get_session(username.as_str()).await {
+      s.lock().await.update_last_active_time();
+      return;
+    }
     let session = Arc::new(Mutex::new(Session::new(username.clone())));
     self.sessions.insert(username, session);
   }
 
-  pub fn get_session(&self, username: &str) -> Option<Arc<Mutex<Session>>>
+  pub async fn get_session(&self, username: &str) -> Option<Arc<Mutex<Session>>>
   {
-    self.sessions.get(username).map(|s| s.clone())
+    let session = self.sessions.get(username).map(|s| s.clone());
+    if let Some(s) = session.clone() {
+        s.lock().await.update_last_active_time();
+    }
+    session
   }
 
-  pub fn remove_session(&mut self, username: &str)
+  pub async fn clean_outdated_sessions(&mut self)
   {
-    self.sessions.remove(username);
+    println!("Cleaning outdated sessions");
+    let mut to_remove = Vec::new();
+    for (username, session) in self.sessions.iter() {
+      let s = session.lock().await;
+      if s.get_last_active_time().timestamp() + 3600 < Utc::now().timestamp() {
+        to_remove.push(username.clone());
+      }
+    }
+    for username in to_remove {
+      self.sessions.remove(username.as_str());
+    }
   }
     
 }
@@ -68,7 +89,8 @@ impl Session {
       income: None,
       expenditure: None,
       debt: None,
-      assets: None
+      assets: None,
+      last_active_time: Utc::now(),
     }
   }
 
@@ -210,5 +232,15 @@ impl Session {
     }
     score = f64::max(f64::min(score, 1.0), 0.0);
     score
+  }
+
+  pub fn update_last_active_time(&mut self)
+  {
+    self.last_active_time = Utc::now();
+  }
+
+  pub fn get_last_active_time(&self) -> DateTime<Utc>
+  {
+    self.last_active_time
   }
 }

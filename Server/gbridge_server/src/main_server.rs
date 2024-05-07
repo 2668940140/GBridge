@@ -4,12 +4,8 @@ mod database;
 mod session;
 use crate::ServerConfig;
 use data_structure::{RequestQueue, ResponseQueue, Json};
-use futures::future::err;
-use mongodb::bson::{doc, ser};
+use mongodb::bson::{doc};
 use serde_json::json;
-use tokio::sync::SetError;
-
-use std::env::temp_dir;
 use std::sync::Arc;
 use tokio::sync::{Mutex};
 use tokio::net::{TcpListener, TcpStream};
@@ -17,6 +13,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use self::database::Db;
 use self::session::{Session, FINANCIAL_FILEDS};
+use std::time::Duration;
 
 pub struct MainServer
 {
@@ -74,7 +71,6 @@ impl MainServer {
     {
       return Ok(json!({
         "type": "register",
-        "username": username,
         "status": 200,
         "preserved": preserved,
       }));
@@ -116,7 +112,6 @@ impl MainServer {
       return Ok(json!({
         "type": "login",
         "status": 200,
-        "username": username,
         "preserved": preserved
       }));
     }
@@ -172,7 +167,6 @@ impl MainServer {
     return Ok(json!({
       "type": "update_user_info",
       "status": 200,
-      "username": username,
       "preserved": preserved,
     }));
   }
@@ -260,7 +254,6 @@ impl MainServer {
     return Ok(json!({
       "type": "get_user_info",
       "status": 200,
-      "username": username,
       "preserved": preserved,
       "content": content
     }));
@@ -277,7 +270,6 @@ impl MainServer {
     return Ok(json!({
       "type": "estimate_score",
       "status": 200,
-      "username": username,
       "preserved": preserved,
       "content": {
         "score": score
@@ -294,7 +286,7 @@ impl MainServer {
     sessions : Arc<Mutex<session::Sessions>>)
   {
     let mut buf = [0; 1024];
-    let mut username : Option<String> = None;
+    let mut session : Option<Arc<Mutex<Session>>> = None;
 
     loop {
       println!("Reading");
@@ -327,14 +319,6 @@ impl MainServer {
         else
         {
           let request_type = requset_type.unwrap().as_str().unwrap();
-          let session = match username {
-            Some(ref u) => {
-              sessions.lock().await.get_session(u.as_str())
-            },
-            None => {
-              None
-            } 
-          };
 
           let response : Result<Json, ()> = match request_type {
             "register" => {
@@ -346,18 +330,19 @@ impl MainServer {
 
               if tmp_response.is_ok() {
                 let content = tmp_response.clone().unwrap();
-                username = 
+                let username = 
                 content.get("username").and_then(|u| u.as_str())
                 .map(|s| s.to_string()).clone();
+                session = sessions.lock().await.get_session(&username.unwrap()).await;
               }
               else {
-                username = None;
+                session = None;
               }
 
               tmp_response
             }
             "update_user_info" => {
-              if let Some(session) = session
+              if let Some(session) = session.clone()
               {
                 Self::update_user_info(&request_json, db.clone(), session).await
               }
@@ -366,7 +351,7 @@ impl MainServer {
               }
             }
             "get_user_info" => {
-              if let Some(session) = session
+              if let Some(session) = session.clone()
               {
                 Self::get_user_info(&request_json, db.clone(), session).await
               }
@@ -375,7 +360,7 @@ impl MainServer {
               }
             }
             "estimate_score" => {
-              if let Some(session) = session
+              if let Some(session) = session.clone()
               {
                 Self::estimate_score_worker(&request_json, db.clone(), session).await
               }
@@ -410,15 +395,14 @@ impl MainServer {
       }
     }
 
-    if username.is_some() {
-      sessions.lock().await.remove_session(username.unwrap().as_str());
-    }
     println!("Connection closed");
 
   }
 
   pub async fn run(mut self) {
     self.initialize().await;
+
+    tokio::spawn(Self::clean_outdated_sessions(self.sessions.clone()));
 
     loop {
       println!("Waiting for connection");
@@ -444,4 +428,11 @@ impl MainServer {
     }
   }
 
+  async fn clean_outdated_sessions(sessions : Arc<Mutex<session::Sessions>>)
+  {
+    loop {
+      tokio::time::sleep(Duration::from_secs(600)).await;
+      sessions.lock().await.clean_outdated_sessions().await;
+    }
+  }
 }
