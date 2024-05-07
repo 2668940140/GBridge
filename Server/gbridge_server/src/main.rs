@@ -1,5 +1,4 @@
 extern crate lazy_static;
-
 mod main_server;
 mod server_config;
 use server_config::ServerConfig;
