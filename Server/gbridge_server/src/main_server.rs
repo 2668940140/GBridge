@@ -1,4 +1,3 @@
-
 mod data_structure;
 mod utils;
 mod database;
@@ -9,13 +8,14 @@ use mongodb::bson::{doc, ser};
 use serde_json::json;
 use tokio::sync::SetError;
 
+use std::env::temp_dir;
 use std::sync::Arc;
 use tokio::sync::{Mutex};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use self::database::Db;
-use self::session::Session;
+use self::session::{Session, FINANCIAL_FILEDS};
 
 pub struct MainServer
 {
@@ -73,7 +73,7 @@ impl MainServer {
     {
       return Ok(json!({
         "type": "register",
-        "user": username,
+        "username": username,
         "status": 200,
         "preserved": preserved,
       }));
@@ -115,39 +115,10 @@ impl MainServer {
       return Ok(json!({
         "type": "login",
         "status": 200,
-        "user": username,
+        "username": username,
         "preserved": preserved
       }));
     }
-  }
-
-  async fn logout_worker(request : &Json, db : Arc<Db>, 
-    sessions :Arc<Mutex<session::Sessions>>) -> Result<Json,()>
-  {
-    let content = request.get("content").
-    and_then(|c| c.as_object());
-    if content.is_none() {
-      return Err(());
-    }
-    let content = content.unwrap();
-    let username = content.get("username").and_then(|u| u.as_str());
-
-    if username.is_none() {
-      return Err(());
-    }
-
-    let preserved = request.get("preserved").and_then(|p| p.as_object());
-
-    let username = username.unwrap();
-    
-    sessions.lock().await.remove_session(username);
-
-    return Ok(json!({
-      "type": "logout",
-      "status": 200,
-      "user": username,
-      "preserved": preserved
-    }));
   }
 
   async fn update_user_info(request : &Json, db : Arc<Db>, 
@@ -176,9 +147,25 @@ impl MainServer {
           vector.push("portrait".to_string());
           session.lock().await.portrait = value.as_str().map(|s| s.to_string());
         },
-        "money" => {
-          vector.push("money".to_string());
-          session.lock().await.money = value.as_i64();
+        "cash" => {
+          vector.push("cash".to_string());
+          session.lock().await.cash = value.as_f64();
+        },
+        "income" => {
+          vector.push("income".to_string());
+          session.lock().await.income = value.as_f64();
+        },
+        "expenditure" => {
+          vector.push("expenditure".to_string());
+          session.lock().await.expenditure = value.as_f64();
+        },
+        "debt" => {
+          vector.push("debt".to_string());
+          session.lock().await.debt = value.as_f64();
+        },
+        "assets" => {
+          vector.push("assets".to_string());
+          session.lock().await.assets = value.as_f64();
         },
         _ => {panic!("Invalid item");}
       }
@@ -189,7 +176,7 @@ impl MainServer {
     return Ok(json!({
       "type": "update_user_info",
       "status": 200,
-      "user": username,
+      "username": username,
       "preserved": preserved,
     }));
   }
@@ -220,9 +207,25 @@ impl MainServer {
           vector.push("portrait".to_string());
           session.lock().await.portrait = value.as_str().map(|s| s.to_string());
         },
-        "money" => {
-          vector.push("money".to_string());
-          session.lock().await.money = value.as_i64();
+        "cash" => {
+          vector.push("cash".to_string());
+          session.lock().await.cash = value.as_f64();
+        },
+        "income" => {
+          vector.push("income".to_string());
+          session.lock().await.income = value.as_f64();
+        },
+        "expenditure" => {
+          vector.push("expenditure".to_string());
+          session.lock().await.expenditure = value.as_f64();
+        },
+        "debt" => {
+          vector.push("debt".to_string());
+          session.lock().await.debt = value.as_f64();
+        },
+        "assets" => {
+          vector.push("assets".to_string());
+          session.lock().await.assets = value.as_f64();
         },
         _ => {panic!("Invalid item");}
       }
@@ -238,10 +241,26 @@ impl MainServer {
           content["portrait"] = session.
           lock().await.portrait.as_ref().map(|s| json!(s)).unwrap_or(json!(null));
         },
-        "money" => {
-          content["money"] = session.
-          lock().await.money.map(|s| json!(s)).unwrap_or(json!(null));
+        "cash" => {
+          content["cash"] = session.
+          lock().await.cash.map(|s| json!(s)).unwrap_or(json!(null));
         },
+        "income" => {
+          content["income"] = session.
+          lock().await.income.map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "expenditure" => {
+          content["expenditure"] = session.
+          lock().await.expenditure.map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "debt" => {
+          content["debt"] = session.
+          lock().await.debt.map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "assets" => {
+          content["assets"] = session.
+          lock().await.assets.map(|s| json!(s)).unwrap_or(json!(null));
+        }
         _ => {panic!("Invalid item");}
       }
     }
@@ -249,18 +268,49 @@ impl MainServer {
     return Ok(json!({
       "type": "get_user_info",
       "status": 200,
-      "user": username,
+      "username": username,
       "preserved": preserved,
       "content": content
     }));
   }
 
+  async fn estimate_score_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
+  -> Result<Json,()>
+  {
+    let content = request.get("content").
+    and_then(|c| c.as_object());
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+    let username = content.get("username").and_then(|u| u.as_str());
+
+    if username.is_none() {
+      return Err(());
+    }
+
+    let preserved = request.get("preserved").and_then(|p| p.as_object());
+
+    session.lock().await.retrive_from_db(db.clone(), &FINANCIAL_FILEDS).await;
+    let score = session.lock().await.estimate_score();
+
+    return Ok(json!({
+      "type": "estimate_score",
+      "status": 200,
+      "username": username,
+      "preserved": preserved,
+      "content": {
+        "score": score
+      }
+    }));
+  }
 
   async fn handle_stream(mut stream : TcpStream, db : Arc<Db>,
     sessions : Arc<Mutex<session::Sessions>>)
   {
-    
     let mut buf = [0; 1024];
+    let mut username : Option<String> = None;
+
     loop {
       println!("Reading");
       let n = stream.read(&mut buf).await;
@@ -277,6 +327,7 @@ impl MainServer {
       
       let request_json: Result<Json, _> = serde_json::from_str(&request);
       let mut ok = true;
+
       if request_json.is_err()
       {
         ok = false;
@@ -302,10 +353,20 @@ impl MainServer {
               Self::register_worker(&request_json, db.clone()).await
             }
             "login" => {
-              Self::login_worker(&request_json, db.clone(), sessions.clone()).await
-            }
-            "logout" => {
-              Self::logout_worker(&request_json, db.clone(), sessions.clone()).await
+              let tmp_response = 
+              Self::login_worker(&request_json, db.clone(), sessions.clone()).await;
+
+              if tmp_response.is_ok() {
+                let content = tmp_response.clone().unwrap();
+                username = 
+                content.get("username").and_then(|u| u.as_str())
+                .map(|s| s.to_string()).clone();
+              }
+              else {
+                username = None;
+              }
+
+              tmp_response
             }
             "update_user_info" => {
               
@@ -342,6 +403,12 @@ impl MainServer {
         stream.write_all(response.as_bytes()).await.unwrap();
       }
     }
+
+    if username.is_some() {
+      sessions.lock().await.remove_session(username.unwrap().as_str());
+    }
+    println!("Connection closed");
+
   }
 
   pub async fn run(mut self) {
