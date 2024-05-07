@@ -305,6 +305,11 @@ impl MainServer {
     }));
   }
 
+  async fn submit_marker_post(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
+  {
+
+  }
+
   async fn handle_stream(mut stream : TcpStream, db : Arc<Db>,
     sessions : Arc<Mutex<session::Sessions>>)
   {
@@ -376,7 +381,10 @@ impl MainServer {
             }
             "get_user_info" => {
               Self::get_user_info(&request_json, db.clone(), session.unwrap()).await
-            }
+            },
+            "estimate_score" => {
+              Self::estimate_score_worker(&request_json, db.clone(), session.unwrap()).await
+            },
             _ => {
               Err(())
             }

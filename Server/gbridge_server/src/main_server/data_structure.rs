@@ -25,7 +25,3 @@ pub type RequestQueue = VecDeque<Request>;
 pub type ResponseQueue = VecDeque<Response>;
 
 /* Structs for data */
-pub struct User {
-  pub username: String,
-  pub password: String,
-}

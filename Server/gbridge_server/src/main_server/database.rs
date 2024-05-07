@@ -10,8 +10,13 @@ use mongodb::{
 pub struct Db
 {
   pub client: Client,
-  pub user_db : Database,
-  pub users_base_info : Collection<Document>
+  pub users_db : Database,
+  pub users_base_info : Collection<Document>,
+  pub public_db : Database,
+  pub public_market : Collection<Document>,
+  pub public_deals : Collection<Document>,
+  pub public_history_market : Collection<Document>,
+  pub public_history_deals : Collection<Document>,
 }
 
 impl Db {
@@ -20,35 +25,22 @@ impl Db {
     let client = Client::with_uri_str(uri).await.unwrap();
     let user_db = client.database("users");
     let users_base_info = user_db.collection("base_info");
+    let public_db = client.database("public");
+    let public_market = public_db.collection("market");
+    let public_deals = public_db.collection("deals");
+    let public_history_market = public_db.collection("history_market");
+    let public_history_deals = public_db.collection("history_deals");
     
     println!("Connected to database successfully!");
     Db {
       client: client,
-      user_db: user_db,
-      users_base_info: users_base_info
+      users_db: user_db,
+      users_base_info: users_base_info,
+      public_db: public_db,
+      public_market: public_market,
+      public_deals: public_deals,
+      public_history_market: public_history_market,
+      public_history_deals: public_history_deals
     }
-  }
-
-  pub async fn get_usr_by_name(&self, username : &String) -> Option<User> {
-    let filter = doc! { "username": username };
-    let result = self.users_base_info.find_one(filter, None).await.unwrap();
-    match result {
-      Some(doc) => {
-        let user = User {
-          username: doc.get_str("username").unwrap().to_string(),
-          password: doc.get_str("password").unwrap().to_string()
-        };
-        Some(user)
-      },
-      None => None
-    }
-  }
-
-  pub async fn insert_user(&self, user : &User) {
-    assert!(self.get_usr_by_name(&user.username).await.is_none());
-    self.users_base_info.insert_one(doc! {
-      "username": &user.username,
-      "password": &user.password
-    }, None).await.unwrap();
   }
 }
