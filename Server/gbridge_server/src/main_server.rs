@@ -4,6 +4,7 @@ mod database;
 mod session;
 use crate::ServerConfig;
 use data_structure::{RequestQueue, ResponseQueue, Json};
+use futures::future::err;
 use mongodb::bson::{doc, ser};
 use serde_json::json;
 use tokio::sync::SetError;
@@ -130,15 +131,10 @@ impl MainServer {
       return Err(());
     }
     let content = content.unwrap();
-    let username = content.get("username").and_then(|u| u.as_str());
-
-    if username.is_none() {
-      return Err(());
-    }
 
     let preserved = request.get("preserved").and_then(|p| p.as_object());
+    let username = session.as_ref().lock().await.username.clone();
 
-    let username = username.unwrap();
     let mut vector:Vec<String> = Vec::new();
 
     for (key, value) in content.iter() {
@@ -190,15 +186,9 @@ impl MainServer {
       return Err(());
     }
     let content = content.unwrap();
-    let username = content.get("username").and_then(|u| u.as_str());
-
-    if username.is_none() {
-      return Err(());
-    }
 
     let preserved = request.get("preserved").and_then(|p| p.as_object());
 
-    let username = username.unwrap();
     let mut vector:Vec<String> = Vec::new();
 
     for (key, value) in content.iter() {
@@ -265,6 +255,8 @@ impl MainServer {
       }
     }
 
+    let username = session.lock().await.username.clone();
+
     return Ok(json!({
       "type": "get_user_info",
       "status": 200,
@@ -277,23 +269,11 @@ impl MainServer {
   async fn estimate_score_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
   -> Result<Json,()>
   {
-    let content = request.get("content").
-    and_then(|c| c.as_object());
-    if content.is_none() {
-      return Err(());
-    }
-    let content = content.unwrap();
-    let username = content.get("username").and_then(|u| u.as_str());
-
-    if username.is_none() {
-      return Err(());
-    }
-
     let preserved = request.get("preserved").and_then(|p| p.as_object());
 
     session.lock().await.retrive_from_db(db.clone(), &FINANCIAL_FILEDS).await;
     let score = session.lock().await.estimate_score();
-
+    let username = session.lock().await.username.clone();
     return Ok(json!({
       "type": "estimate_score",
       "status": 200,
@@ -347,11 +327,14 @@ impl MainServer {
         else
         {
           let request_type = requset_type.unwrap().as_str().unwrap();
-          let user_name = 
-          request_json.get("content").and_then(|c| c.get("username")).
-          and_then(|u| u.as_str());
-
-          let session = sessions.lock().await.get_session(user_name.unwrap());
+          let session = match username {
+            Some(ref u) => {
+              sessions.lock().await.get_session(u.as_str())
+            },
+            None => {
+              None
+            } 
+          };
 
           let response : Result<Json, ()> = match request_type {
             "register" => {
@@ -374,17 +357,32 @@ impl MainServer {
               tmp_response
             }
             "update_user_info" => {
-              
-              Self::update_user_info(&request_json, db.clone(),
-              session.unwrap()
-            ).await
+              if let Some(session) = session
+              {
+                Self::update_user_info(&request_json, db.clone(), session).await
+              }
+              else {
+                Err(())
+              }
             }
             "get_user_info" => {
-              Self::get_user_info(&request_json, db.clone(), session.unwrap()).await
-            },
+              if let Some(session) = session
+              {
+                Self::get_user_info(&request_json, db.clone(), session).await
+              }
+              else {
+                Err(())
+              }
+            }
             "estimate_score" => {
-              Self::estimate_score_worker(&request_json, db.clone(), session.unwrap()).await
-            },
+              if let Some(session) = session
+              {
+                Self::estimate_score_worker(&request_json, db.clone(), session).await
+              }
+              else {
+                Err(())
+              }
+            }
             _ => {
               Err(())
             }
@@ -445,4 +443,5 @@ impl MainServer {
       sessions: Arc::new(Mutex::new(session::Sessions::new()))
     }
   }
+
 }
