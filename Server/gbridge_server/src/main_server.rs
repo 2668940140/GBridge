@@ -3,11 +3,11 @@ mod utils;
 mod database;
 mod session;
 use crate::ServerConfig;
-use data_structure::{RequestQueue, ResponseQueue, Json};
-use mongodb::bson::{doc};
+use data_structure::Json;
+use mongodb::bson::doc;
 use serde_json::json;
 use std::sync::Arc;
-use tokio::sync::{Mutex};
+use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -18,8 +18,6 @@ use std::time::Duration;
 pub struct MainServer
 {
   config: ServerConfig,
-  request_queue: Arc<Mutex<RequestQueue>>,
-  response_queue: Arc<Mutex<ResponseQueue>>,
   db : Option<Arc<database::Db>>,
   listener : Option<TcpListener>,
   sessions: Arc<Mutex<session::Sessions>>
@@ -108,7 +106,7 @@ impl MainServer {
     }
     else
     {
-      sessions.lock().await.add_session(username.to_string());
+      sessions.lock().await.add_session(username.to_string()).await;
       return Ok(json!({
         "type": "login",
         "status": 200,
@@ -128,7 +126,6 @@ impl MainServer {
     let content = content.unwrap();
 
     let preserved = request.get("preserved").and_then(|p| p.as_object());
-    let username = session.as_ref().lock().await.username.clone();
 
     let mut vector:Vec<String> = Vec::new();
 
@@ -249,8 +246,6 @@ impl MainServer {
       }
     }
 
-    let username = session.lock().await.username.clone();
-
     return Ok(json!({
       "type": "get_user_info",
       "status": 200,
@@ -266,7 +261,6 @@ impl MainServer {
 
     session.lock().await.retrive_from_db(db.clone(), &FINANCIAL_FILEDS).await;
     let score = session.lock().await.estimate_score();
-    let username = session.lock().await.username.clone();
     return Ok(json!({
       "type": "estimate_score",
       "status": 200,
@@ -277,9 +271,68 @@ impl MainServer {
     }));
   }
 
-  async fn submit_marker_post(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
+  async fn submit_market_post(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
+  -> Result<Json, ()>
   {
+    let preserved = request.get("preserved").and_then(|p| p.as_object());
+    let content = request.get("content");
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+  
+    let post_type = content.get("type").and_then(|t| t.as_str());
+    let poster = content.get("poster").and_then(|c| c.as_str());
+    let amount = content.get("amount").and_then(|a| a.as_f64());
+    let interest = content.get("interest").and_then(|i| i.as_f64());
+    let period = content.get("period").and_then(|p| p.as_i64());
+    let method = content.get("method").and_then(|m| m.as_str());
+    let description = content.get("description").and_then(|d| d.as_str());
+    let extra = content.get("extra").and_then(|e| e.as_str());
+    
+    if post_type.is_none() || poster.is_none() ||
+     amount.is_none() || interest.is_none() ||
+      period.is_none() || method.is_none() || description.is_none() {
+      return Err(());
+    }
+    let post_type = post_type.unwrap();
+    let poster = poster.unwrap();
+    let amount = amount.unwrap();
+    let interest = interest.unwrap();
+    let period = period.unwrap();
+    let method = method.unwrap();
+    let description = description.unwrap();
 
+    if post_type != "lend" && post_type != "borrow" {
+      return Err(());
+    }
+    let username = session.lock().await.username.clone();
+    let entry = doc! {
+      "username": username,
+      "type": post_type,
+      "poster": poster,
+      "amount": amount,
+      "interest": interest,
+      "period": period,
+      "method": method,
+      "description": description,
+      "extra": extra
+    };
+
+    let response = db.public_market.insert_one(entry, None).await;
+    match response {
+      Ok(_) => {
+        return Ok(json!({
+          "type": "submit_market_post",
+          "status": 200,
+          "preserved": preserved
+        }));
+      },
+      Err(_) => {
+        return Err(());
+      }
+        
+    }
   }
 
   async fn handle_stream(mut stream : TcpStream, db : Arc<Db>,
@@ -287,6 +340,7 @@ impl MainServer {
   {
     let mut buf = [0; 1024];
     let mut session : Option<Arc<Mutex<Session>>> = None;
+    let mut username : Option<String> = None;
 
     loop {
       println!("Reading");
@@ -303,7 +357,7 @@ impl MainServer {
       let request = String::from_utf8_lossy(&buf[..n]);
       
       let request_json: Result<Json, _> = serde_json::from_str(&request);
-      let mut ok = true;
+      let ok;
 
       if request_json.is_err()
       {
@@ -330,10 +384,10 @@ impl MainServer {
 
               if tmp_response.is_ok() {
                 let content = tmp_response.clone().unwrap();
-                let username = 
+                username = 
                 content.get("username").and_then(|u| u.as_str())
-                .map(|s| s.to_string()).clone();
-                session = sessions.lock().await.get_session(&username.unwrap()).await;
+                .map(|s| s.to_string());
+                session = sessions.lock().await.get_session(username.as_ref().unwrap()).await;
               }
               else {
                 session = None;
@@ -368,6 +422,15 @@ impl MainServer {
                 Err(())
               }
             }
+            "submit_market_post" => {
+              if let Some(session) = session.clone()
+              {
+                Self::submit_market_post(&request_json, db.clone(), session).await
+              }
+              else {
+                Err(())
+              }
+            }
             _ => {
               Err(())
             }
@@ -377,7 +440,12 @@ impl MainServer {
             ok = false;
           }
           else {
-            let response = response.unwrap();
+            let mut response = response.unwrap();
+            response.as_object_mut().unwrap().
+            insert(String::from("username"), json!(username.clone()));
+            response.as_object_mut().unwrap().
+            insert(String::from("time"), json!(chrono::Utc::now().timestamp()));
+            
             let response = serde_json::to_string(&response).unwrap();
             stream.write_all(response.as_bytes()).await.unwrap();
             ok = true;
@@ -419,8 +487,6 @@ impl MainServer {
 
   pub fn new(server_config : &ServerConfig) -> MainServer {
     MainServer {
-      request_queue: Arc::new(Mutex::new(RequestQueue::new())),
-      response_queue: Arc::new(Mutex::new(ResponseQueue::new())),
       config: server_config.clone(),
       db: None,
       listener: None,

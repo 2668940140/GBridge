@@ -1,4 +1,5 @@
 use regex::Regex;
+#[allow(dead_code)]
 
 /// Checks if a username is valid.
 /// A valid username consists of 4 to 10 alphanumeric characters or underscores.
@@ -7,6 +8,7 @@ pub fn check_username_validity(username: &String) -> bool {
     re.is_match(username)
 }
 
+#[allow(dead_code)]
 /// Checks if a username is valid.
 /// A valid username consists of 6 to 12 characters
 pub fn check_password_validity(password: &String) -> bool {
@@ -20,7 +22,7 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_username_validQ() {
+  fn test_username_validity() {
     // Existing test case
     assert_eq!(check_username_validity(&String::from("john_doe")), true);
 

@@ -1,7 +1,5 @@
-use crate::main_server::data_structure::*;
-
 use mongodb::{ 
-	bson::{Document, doc},
+	bson::Document,
 	Client,
 	Collection,
   Database
