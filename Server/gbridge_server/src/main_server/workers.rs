@@ -28,7 +28,7 @@ impl main_server::MainServer
       return Err(());
     }
 
-    let preserved = request.get("preserved").and_then(|p| p.as_object());
+    let preserved = request.get("preserved");
 
 
     let email = email.unwrap();
@@ -71,7 +71,7 @@ impl main_server::MainServer
       return Err(());
     }
 
-    let preserved = request.get("preserved").and_then(|p| p.as_object());
+    let preserved = request.get("preserved");
 
     let username = username.unwrap();
     let password = password.unwrap();
@@ -106,7 +106,7 @@ impl main_server::MainServer
     }
     let content = content.unwrap();
 
-    let preserved = request.get("preserved").and_then(|p| p.as_object());
+    let preserved = request.get("preserved");
 
     let mut vector:Vec<String> = Vec::new();
 
@@ -159,7 +159,7 @@ impl main_server::MainServer
     }
     let content = content.unwrap();
 
-    let preserved = request.get("preserved").and_then(|p| p.as_object());
+    let preserved = request.get("preserved");
 
     let mut vector:Vec<String> = Vec::new();
 
@@ -238,7 +238,7 @@ impl main_server::MainServer
   pub async fn estimate_score_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
   -> Result<Json,()>
   {
-    let preserved = request.get("preserved").and_then(|p| p.as_object());
+    let preserved = request.get("preserved");
 
     session.lock().await.retrive_from_db(db.clone(), &FINANCIAL_FILEDS).await;
     let score = session.lock().await.estimate_score();
@@ -255,7 +255,7 @@ impl main_server::MainServer
   pub async fn submit_market_post_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
   -> Result<Json, ()>
   {
-    let preserved = request.get("preserved").and_then(|p| p.as_object());
+    let preserved = request.get("preserved");
     let content = request.get("content");
     if content.is_none() {
       return Err(());
@@ -319,7 +319,7 @@ impl main_server::MainServer
 
   pub async fn get_market_posts_worker(request : &Json, db : Arc<Db>) -> Result<Json,()>
   {
-    let preserved = request.get("preserved").and_then(|p| p.as_object());
+    let preserved = request.get("preserved");
   
     let cursor = db.public_market.find(doc! {}, None).await;
     if cursor.is_err() {
