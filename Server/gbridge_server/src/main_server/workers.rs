@@ -55,7 +55,8 @@ impl main_server::MainServer
   }
 
   pub async fn login_worker(request : &Json, db : Arc<Db>, 
-  sessions :Arc<Mutex<session::Sessions>>) -> Result<Json,()>
+  sessions :Arc<Mutex<session::Sessions>>,
+  outer_username : &mut Option<String>) -> Result<Json,()>
   {
     let content = request.get("content").
     and_then(|c| c.as_object());
@@ -86,6 +87,7 @@ impl main_server::MainServer
     else
     {
       sessions.lock().await.add_session(username.to_string()).await;
+      *outer_username = Some(username.to_string());
       return Ok(json!({
         "type": "login",
         "status": 200,

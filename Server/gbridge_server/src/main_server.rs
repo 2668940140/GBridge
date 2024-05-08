@@ -79,13 +79,10 @@ impl MainServer {
             }
             "login" => {
               let tmp_response = 
-              Self::login_worker(&request_json, db.clone(), sessions.clone()).await;
-
+              Self::login_worker(&request_json, db.clone(), sessions.clone(),
+              &mut username).await;
+              println!("username {} logined", username.clone().unwrap_or("None".to_string()));
               if tmp_response.is_ok() {
-                let content = tmp_response.clone().unwrap();
-                username = 
-                content.get("username").and_then(|u| u.as_str())
-                .map(|s| s.to_string());
                 session = sessions.lock().await.get_session(username.as_ref().unwrap()).await;
               }
               else {
