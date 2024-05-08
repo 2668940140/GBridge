@@ -262,7 +262,7 @@ impl main_server::MainServer
     }
     let content = content.unwrap();
   
-    let post_type = content.get("type").and_then(|t| t.as_str());
+    let post_type = content.get("post_type").and_then(|t| t.as_str());
     let poster = content.get("poster").and_then(|c| c.as_str());
     let amount = content.get("amount").and_then(|a| a.as_f64());
     let interest = content.get("interest").and_then(|i| i.as_f64());
