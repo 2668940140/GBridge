@@ -2,7 +2,6 @@ extern crate lazy_static;
 mod main_server;
 mod server_config;
 use server_config::ServerConfig;
-use main_server::chatter;
 
 #[tokio::main]
 async fn main(){

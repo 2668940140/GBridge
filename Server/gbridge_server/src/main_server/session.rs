@@ -186,6 +186,7 @@ impl Session {
         _ => {panic!("Invalid item");}
       }
     }
+    update.insert("time", Utc::now().to_rfc3339());
 
     db.users_base_info.update_one(doc! {
       "username": &self.username

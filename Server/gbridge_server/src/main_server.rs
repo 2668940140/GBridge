@@ -3,7 +3,7 @@ mod utils;
 mod database;
 mod session;
 mod workers;
-pub mod chatter;
+mod chatter;
 use crate::ServerConfig;
 use data_structure::Json;
 use serde_json::json;
@@ -21,7 +21,8 @@ pub struct MainServer
   config: ServerConfig,
   db : Option<Arc<database::Db>>,
   listener : Option<TcpListener>,
-  sessions: Arc<Mutex<session::Sessions>>
+  sessions: Arc<Mutex<session::Sessions>>,
+  gptbot : Option<chatter::GptBot>
 }
 
 impl MainServer {
@@ -204,7 +205,8 @@ impl MainServer {
       config: server_config.clone(),
       db: None,
       listener: None,
-      sessions: Arc::new(Mutex::new(session::Sessions::new()))
+      sessions: Arc::new(Mutex::new(session::Sessions::new())),
+      gptbot: None
     }
   }
 

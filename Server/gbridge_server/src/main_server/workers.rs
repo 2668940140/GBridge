@@ -36,10 +36,24 @@ impl main_server::MainServer
     let username = username.unwrap();
     let password = password.unwrap();
 
+    let finding = db.users_base_info.find_one(doc! {
+      "username": username
+    }, None).await;
+    if finding.is_ok() && finding.unwrap().is_some() {
+      return Err(());
+    }
+    let finding = db.users_base_info.find_one(doc! {
+      "email": email
+    }, None).await;
+    if finding.is_ok() && finding.unwrap().is_some() {
+      return Err(());
+    }
+
     let response = db.users_base_info.insert_one(doc! {
       "email": email,
       "username": username,
       "password": password,
+      "time": chrono::Utc::now().to_rfc3339()
     }, None).await;
 
     if response.is_err() {
