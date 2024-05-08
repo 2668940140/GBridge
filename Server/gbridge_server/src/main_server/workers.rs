@@ -171,7 +171,7 @@ impl main_server::MainServer
     session: Arc<Mutex<Session>>) -> Result<Json,()>
   {
     let content = request.get("content").
-    and_then(|c| c.as_object());
+    and_then(|c| c.as_array());
     if content.is_none() {
       return Err(());
     }
@@ -179,37 +179,7 @@ impl main_server::MainServer
 
     let preserved = request.get("preserved");
 
-    let mut vector:Vec<String> = Vec::new();
-
-    for (key, value) in content.iter() {
-      match key.as_str() {
-        "portrait" => {
-          vector.push("portrait".to_string());
-          session.lock().await.portrait = value.as_str().map(|s| s.to_string());
-        },
-        "cash" => {
-          vector.push("cash".to_string());
-          session.lock().await.cash = value.as_f64();
-        },
-        "income" => {
-          vector.push("income".to_string());
-          session.lock().await.income = value.as_f64();
-        },
-        "expenditure" => {
-          vector.push("expenditure".to_string());
-          session.lock().await.expenditure = value.as_f64();
-        },
-        "debt" => {
-          vector.push("debt".to_string());
-          session.lock().await.debt = value.as_f64();
-        },
-        "assets" => {
-          vector.push("assets".to_string());
-          session.lock().await.assets = value.as_f64();
-        },
-        _ => {panic!("Invalid item");}
-      }
-    }
+    let vector:Vec<String> = content.iter().map(|c| c.as_str().unwrap().to_string()).collect();
 
     session.lock().await.retrive_from_db(db.clone(), &vector).await;
 
