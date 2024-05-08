@@ -22,7 +22,7 @@ pub struct MainServer
   db : Option<Arc<database::Db>>,
   listener : Option<TcpListener>,
   sessions: Arc<Mutex<session::Sessions>>,
-  gptbot : Option<chatter::GptBot>
+  gptbot : Option<Arc<Mutex<chatter::GptBot>>>
 }
 
 impl MainServer {
@@ -32,6 +32,7 @@ impl MainServer {
     self.listener = Some(
       TcpListener::bind(format!("0.0.0.0:{}", self.config.port))
         .await.unwrap());
+    self.gptbot = Some(Arc::new(Mutex::new(chatter::GptBot::new(self.config.openai_key.clone()).await)));
     println!("Server started at {}", self.config.port);
   }
 

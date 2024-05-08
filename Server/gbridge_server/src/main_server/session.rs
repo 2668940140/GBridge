@@ -14,7 +14,6 @@ pub struct Session
   pub expenditure : Option<f64>, // monthly expenditure
   pub debt : Option<f64>,
   pub assets : Option<f64>,
-
   last_active_time: DateTime<Utc>,
 }
 
@@ -243,5 +242,15 @@ impl Session {
   pub fn get_last_active_time(&self) -> DateTime<Utc>
   {
     self.last_active_time
+  }
+
+  pub async fn get_last_update_time(&self, db: Arc<Db>)
+  -> DateTime<Utc>
+  {
+    let received = db.users_base_info.find_one(doc! {
+      "username": &self.username
+    }, None).await.unwrap().unwrap();
+    let time = received.get("time").unwrap().as_str().unwrap();
+    DateTime::parse_from_rfc3339(time).unwrap().with_timezone(&Utc)
   }
 }

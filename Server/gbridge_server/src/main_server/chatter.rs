@@ -1,6 +1,3 @@
-
-use std::fmt::Error;
-
 use chatgpt;
 
 pub struct GptBot
@@ -27,5 +24,5 @@ impl GptBot {
         Err(_) => Err(())
     }
   }
-  
+
 }

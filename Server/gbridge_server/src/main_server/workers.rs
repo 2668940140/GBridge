@@ -1,10 +1,13 @@
-use core::borrow;
+use core::{borrow, fmt};
+use std::clone;
 use std::sync::Arc;
 
 use crate::main_server;
 use crate::main_server::data_structure::Json;
+use chrono::{FixedOffset, Utc};
 use futures::StreamExt;
-use mongodb::bson::{self, doc};
+use mongodb::bson::{self, doc, DateTime};
+use mongodb::Database;
 use serde_json::json;
 use tokio::sync::Mutex;
 
@@ -435,6 +438,108 @@ impl main_server::MainServer
       "type": "make_deal",
       "status": 200,
       "preserved": preserved
+    }));
+  }
+
+  pub async fn get_bot_evaluation_worker(request : &Json, bot : Arc<Mutex<main_server::chatter::GptBot>>,
+  session : Arc<Mutex<Session>>, db : Arc<Db>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+
+    let last_evaluation = 
+    db.users_bot_evaluation.find_one(doc! {
+      "username": session.lock().await.username.clone()
+    }, None).await;
+    if last_evaluation.is_err() {
+      return Err(());
+    }
+    let last_evaluation = last_evaluation.unwrap();
+    let last_evaluation_time = 
+    match last_evaluation.clone() {
+      Some(doc) => {
+          let time: String = doc.get("time").unwrap().to_string();
+          Some(chrono::DateTime::parse_from_rfc3339(&time).unwrap().with_timezone(&Utc))
+      },
+      None => None
+    };
+
+    if last_evaluation_time.is_some()
+    {
+      let last_update_time = 
+      session.lock().await.get_last_update_time(db.clone()).await;
+      if last_update_time < last_evaluation_time.unwrap() {
+        let content = last_evaluation.unwrap().get("content").unwrap().to_string();
+        return Ok(json!({
+          "type": "get_bot_evaluation",
+          "status": 200,
+          "preserved": preserved,
+          "content": content
+        }));
+      }
+    }
+
+    session.lock().await.retrive_from_db(db.clone(), &FINANCIAL_FILEDS).await;
+    let mut string_info = String::new(); 
+    if session.lock().await.cash.is_some() {
+      string_info.push_str(&format!("cash: ${}, ", session.lock().await.cash.unwrap()));
+    }
+    if session.lock().await.income.is_some() {
+      string_info.push_str(&format!("income: ${}/month, ", session.lock().await.income.unwrap()));
+    }
+    if session.lock().await.expenditure.is_some() {
+      string_info.push_str(&format!("expenditure: ${}/month, ", session.lock().await.expenditure.unwrap()));
+    }
+    if session.lock().await.debt.is_some() {
+      string_info.push_str(&format!("debt: ${}, ", session.lock().await.debt.unwrap()));
+    }
+    if session.lock().await.assets.is_some() {
+      string_info.push_str(&format!("assets: ${}, ", session.lock().await.assets.unwrap()));
+    }
+    if string_info.len() == 0
+    {
+      string_info.push_str("no financial information");
+    }
+
+
+    let prompt = format!("Now you are a professional advisor, please give some advice to the user {},
+    who has the following financial status: {}.",
+    session.lock().await.username, string_info
+    );
+
+    let response = bot.lock().await.generate_response(prompt.to_string()).await;
+    if response.is_err() {
+      return Err(());
+    }
+    let content = response.unwrap();
+    let entry = doc! {
+      "username":session.lock().await.username.clone(),
+      "content": content.clone(),
+      "time": chrono::Utc::now().to_rfc3339(),
+    };
+
+    let query = doc! {
+      "username": session.lock().await.username.clone()
+    };
+    let update = doc! {
+      "$set": {
+      "content": content.clone(),
+      "time": chrono::Utc::now().to_rfc3339(),
+      }
+    };
+
+    let response = db.users_bot_evaluation.update_one(query, update, None).await;
+
+    if response.is_err()
+    {
+      return Err(());
+    }
+
+    return Ok(json!({
+      "type": "get_bot_evaluation",
+      "status": 200,
+      "preserved": preserved,
+      "content": content
     }));
   }
 }
