@@ -210,6 +210,10 @@ impl main_server::MainServer
         "assets" => {
           content["assets"] = session.
           lock().await.assets.map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "email"=> {
+          content["email"] = session.
+          lock().await.email.as_ref().map(|s| json!(s)).unwrap_or(json!(null));
         }
         _ => {panic!("Invalid item");}
       }

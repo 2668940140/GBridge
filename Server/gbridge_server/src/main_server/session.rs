@@ -14,6 +14,7 @@ pub struct Session
   pub expenditure : Option<f64>, // monthly expenditure
   pub debt : Option<f64>,
   pub assets : Option<f64>,
+  pub email : Option<String>,
   last_active_time: DateTime<Utc>,
 }
 
@@ -89,6 +90,7 @@ impl Session {
       expenditure: None,
       debt: None,
       assets: None,
+      email: None,
       last_active_time: Utc::now(),
     }
   }
@@ -135,6 +137,12 @@ impl Session {
           let receive_item = received.get("assets");
           if receive_item.is_some() {
             self.assets = receive_item.unwrap().as_f64();
+          }
+        },
+        "email" => {
+          let receive_item = received.get("email");
+          if receive_item.is_some() {
+            self.email = receive_item.unwrap().as_str().map(|s| s.to_string());
           }
         },
         _ => {panic!("Invalid item");}
