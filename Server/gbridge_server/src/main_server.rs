@@ -3,6 +3,7 @@ mod utils;
 mod database;
 mod session;
 mod workers;
+pub mod chatter;
 use crate::ServerConfig;
 use data_structure::Json;
 use serde_json::json;
@@ -28,7 +29,7 @@ impl MainServer {
   {
     self.db = Some(Arc::new(database::Db::new(&self.config.db_uri).await));
     self.listener = Some(
-      TcpListener::bind(format!("127.0.0.1:{}", self.config.port))
+      TcpListener::bind(format!("0.0.0.0:{}", self.config.port))
         .await.unwrap());
     println!("Server started at {}", self.config.port);
   }
