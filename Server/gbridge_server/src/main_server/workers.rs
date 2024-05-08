@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use crate::main_server;
 use crate::main_server::data_structure::Json;
-use mongodb::bson::doc;
+use futures::StreamExt;
+use mongodb::bson::{self, doc};
 use serde_json::json;
 use tokio::sync::Mutex;
 
@@ -312,5 +313,34 @@ impl main_server::MainServer
       }
         
     }
+  }
+
+  pub async fn get_market_posts_worker(request : &Json, db : Arc<Db>) -> Result<Json,()>
+  {
+    let preserved = request.get("preserved").and_then(|p| p.as_object());
+  
+    let cursor = db.public_market.find(doc! {}, None).await;
+    if cursor.is_err() {
+      return Err(());
+    }
+    let mut cursor = cursor.unwrap();
+  
+    let mut content = Vec::new();
+    while let Some(result) = cursor.next().await {
+      match result {
+        Ok(doc) => {
+          let doc = bson::to_bson(&doc).unwrap(); // Convert bson to json
+          content.push(doc);
+        }
+        Err(e) => return Err(()),
+      }
+    }
+  
+    return Ok(json!({
+      "type": "get_market_info",
+      "status": 200,
+      "preserved": preserved,
+      "content": content // This is now a Vec<Json>
+    }));
   }
 }

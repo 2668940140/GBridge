@@ -130,6 +130,15 @@ impl MainServer {
                 Err(())
               }
             }
+            "get_market_posts" => {
+              if session.is_some()
+              {
+                Self::get_market_posts_worker(&request_json, db.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
             _ => {
               Err(())
             }
