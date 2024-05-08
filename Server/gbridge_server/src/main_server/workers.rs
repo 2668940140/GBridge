@@ -1,3 +1,4 @@
+use core::borrow;
 use std::sync::Arc;
 
 use crate::main_server;
@@ -290,7 +291,7 @@ impl main_server::MainServer
     let username = session.lock().await.username.clone();
     let entry = doc! {
       "username": username,
-      "type": post_type,
+      "post_type": post_type,
       "poster": poster,
       "amount": amount,
       "interest": interest,
@@ -343,6 +344,83 @@ impl main_server::MainServer
       "status": 200,
       "preserved": preserved,
       "content": content // This is now a Vec<Json>
+    }));
+  }
+
+  pub async fn make_deal_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>) 
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content");
+  
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+    let post_id = content.get("post_id").and_then(|p| p.as_str());
+    let dealer = content.get("dealer").and_then(|d| d.as_str());
+
+    if post_id.is_none() || dealer.is_none(){
+      return Err(());
+    }
+
+    let post_id = post_id.unwrap();
+
+    let item = db.public_market.find_one(doc! {
+      "_id": bson::oid::ObjectId::parse_str(post_id).unwrap()
+    }, None).await;
+
+    if item.is_err() {
+      return Err(());
+    }
+    let item = item.unwrap();
+    if item.is_none() {
+      return Err(());
+    }
+    let item = item.unwrap();
+    let post_type = item.get("post_type").unwrap().as_str().unwrap();
+    let lender : String;
+    let borrower : String;
+    if post_type == "lend" {
+      lender = item.get("poster").unwrap().to_string();
+      borrower = session.lock().await.username.clone();
+    }
+    else if post_type == "borrow" {
+      lender = session.lock().await.username.clone();
+      borrower = item.get("poster").unwrap().to_string();
+    }
+    else {
+      panic!("invalid post type");
+    }
+
+    let entry = doc! {
+      "leader": lender,
+      "borrower": borrower,
+      "amount": item.get("amount").unwrap().as_f64().unwrap(),
+      "interest": item.get("interest").unwrap().as_f64().unwrap(),
+      "period": item.get("period").unwrap().as_i64().unwrap(),
+      "method": item.get("method").unwrap().as_str().unwrap(),
+      "description": item.get("description").unwrap().as_str().unwrap(),
+      "extra": item.get("extra").unwrap().as_str().unwrap(),
+      "created_time": chrono::Utc::now().to_rfc3339(),
+      "poster_username": item.get("username").unwrap().as_str().unwrap(),
+      "dealer_username": session.lock().await.username.clone(),
+    };
+
+    let response = db.public_deals.insert_one(entry, None).await;
+    if response.is_err() {
+      return Err(());
+    }
+    db.public_history_market.
+    insert_one(item, None).await.unwrap();
+    db.public_market.delete_one(doc! {
+      "_id": bson::oid::ObjectId::parse_str(post_id).unwrap()
+    }, None).await.unwrap();
+
+    return Ok(json!({
+      "type": "make_deal",
+      "status": 200,
+      "preserved": preserved
     }));
   }
 }

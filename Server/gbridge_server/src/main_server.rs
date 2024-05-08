@@ -136,6 +136,15 @@ impl MainServer {
                 Err(())
               }
             }
+            "make_deal" => {
+              if let Some(session) = session.clone()
+              {
+                Self::make_deal_worker(&request_json, db.clone(), session).await
+              }
+              else {
+                Err(())
+              }
+            }
             _ => {
               Err(())
             }
