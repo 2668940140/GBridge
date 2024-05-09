@@ -17,6 +17,7 @@ pub fn check_password_validity(password: &String) -> bool {
   re.is_match(password)
 }
 
+
 #[cfg(test)]
 mod tests {
   use super::*;

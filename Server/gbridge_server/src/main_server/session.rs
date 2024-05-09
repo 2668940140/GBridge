@@ -1,10 +1,16 @@
 use std::{collections::HashMap, sync::Arc, vec};
 use chrono::{DateTime, Utc};
 use crate::main_server::database::Db;
+use chatgpt::converse;
+use chatgpt::client::ChatGPT;
+use chatgpt;
+use tempfile;
 
 use tokio::sync::Mutex;
-use mongodb::bson::doc;
+use mongodb::{bson::doc, change_stream::session};
+use crate::main_server::data_structure::Json;
 use lazy_static::lazy_static;
+
 pub struct Session
 {
   pub username : String,
@@ -15,6 +21,8 @@ pub struct Session
   pub debt : Option<f64>,
   pub assets : Option<f64>,
   pub email : Option<String>,
+  pub bot_conversation : Option<converse::Conversation>,
+  db : Arc<Db>,
   last_active_time: DateTime<Utc>,
 }
 
@@ -43,13 +51,14 @@ impl Sessions
     }
   }
 
-  pub async fn add_session(&mut self, username: String)
+  pub async fn add_session(&mut self, username: String, db: Arc<Db>)
   {
     if let Some(s) = self.get_session(username.as_str()).await {
       s.lock().await.update_last_active_time();
       return;
     }
-    let session = Arc::new(Mutex::new(Session::new(username.clone())));
+    let session = Arc::new(
+      Mutex::new(Session::new(username.clone(), db.clone())));
     self.sessions.insert(username, session);
   }
 
@@ -73,6 +82,8 @@ impl Sessions
       }
     }
     for username in to_remove {
+      let session = self.sessions.get(&username).unwrap();
+      session.lock().await.finish().await;
       self.sessions.remove(username.as_str());
     }
   }
@@ -80,7 +91,7 @@ impl Sessions
 }
 
 impl Session {
-  pub fn new(username: String) -> Self
+  pub fn new(username: String, db : Arc<Db>) -> Self
   {
     Session {
       username,
@@ -91,13 +102,81 @@ impl Session {
       debt: None,
       assets: None,
       email: None,
+      bot_conversation: None,
+      db: db,
       last_active_time: Utc::now(),
     }
   }
-
-  pub async fn retrive_from_db(&mut self, db: Arc<Db>, items : & Vec<String>)
+  async fn finish(&self)
   {
-    let received = db.users_base_info.find_one(doc! {
+    self.send_bot_conversation_to_db().await;
+  }
+
+  async fn send_bot_conversation_to_db(&self)
+  {
+    if self.bot_conversation.is_none() {
+      return;
+    }
+    let conversation = self.bot_conversation.as_ref().unwrap();
+    let file = tempfile::NamedTempFile::new().unwrap();
+    let path = file.path().to_str().unwrap().to_string();
+    conversation.save_history_json(path.clone()).await.unwrap();
+    let content = std::fs::read_to_string(path).unwrap();
+    self.db.users_bot_conservation.update_one(doc! {
+      "username": &self.username
+    }, doc! {
+      "$set": {
+        "content": content,
+        "time": Utc::now().to_rfc3339()
+      }
+    }, None).await.unwrap();
+  }
+
+  async fn retrieve_bot_conversation(&mut self, 
+    client: Arc<ChatGPT>)
+  {
+    let received = self.db.users_bot_conservation.find_one(doc! {
+      "username": &self.username
+    }, None).await.unwrap();
+    if received.is_none() {
+      return;
+    }
+    let received = received.unwrap();
+    let content = received.get("content").unwrap().as_str().unwrap();
+    let file = tempfile::NamedTempFile::new().unwrap();
+    
+    std::io::Write::write_all(&mut &file, content.as_bytes()).unwrap();
+    
+    let path = file.into_temp_path();
+    let conversation = client.
+    restore_conversation_json(path).await.unwrap();
+    self.bot_conversation = Some(conversation);
+  }
+
+  pub async fn speak_to_bot(&mut self, bot: Arc<ChatGPT>, 
+    message: String)
+  -> String
+  {
+    if self.bot_conversation.is_none() {
+      self.retrieve_bot_conversation(bot.clone()).await;
+    }
+    if self.bot_conversation.is_none()
+    {
+      let mut conversation = bot.new_conversation();
+      conversation.send_role_message(chatgpt::types::Role::System, 
+    format!("You are a financial advisor helping user {}",
+      self.username)).await.unwrap();
+      self.bot_conversation = Some(conversation);
+    }
+    let conversation = self.bot_conversation.as_mut().unwrap();
+    let response = conversation.send_message(message).await
+    .unwrap();
+    response.message().content.clone()
+  }
+
+  pub async fn retrive_from_db(&mut self, items : & Vec<String>)
+  {
+    let received = self.db.users_base_info.find_one(doc! {
       "username": &self.username
     }, None).await.unwrap().unwrap();
     
@@ -150,9 +229,9 @@ impl Session {
     }
   }
 
-  pub async fn update_to_db(&self, db: Arc<Db>, items : & Vec<String>)
+  pub async fn update_to_db(&self, items : & Vec<String>)
   {
-    let received = db.users_base_info.find_one(doc! {
+    let received = self.db.users_base_info.find_one(doc! {
       "username": &self.username
     }, None).await.unwrap().unwrap();
 
@@ -195,7 +274,7 @@ impl Session {
     }
     update.insert("time", Utc::now().to_rfc3339());
 
-    db.users_base_info.update_one(doc! {
+    self.db.users_base_info.update_one(doc! {
       "username": &self.username
     }, doc! {
       "$set": update

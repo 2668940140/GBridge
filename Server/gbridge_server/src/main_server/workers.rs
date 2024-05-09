@@ -10,6 +10,7 @@ use mongodb::bson::{self, doc, DateTime};
 use mongodb::Database;
 use serde_json::json;
 use tokio::sync::Mutex;
+use chatgpt::client::ChatGPT;
 
 use super::database::Db;
 use super::session::{self, Session, FINANCIAL_FILEDS};
@@ -104,7 +105,7 @@ impl main_server::MainServer
     }
     else
     {
-      sessions.lock().await.add_session(username.to_string()).await;
+      sessions.lock().await.add_session(username.to_string(), db.clone()).await;
       *outer_username = Some(username.to_string());
       return Ok(json!({
         "type": "login",
@@ -158,7 +159,7 @@ impl main_server::MainServer
       }
     }
 
-    session.lock().await.update_to_db(db.clone(), &vector).await;
+    session.lock().await.update_to_db(&vector).await;
 
     return Ok(json!({
       "type": "update_user_info",
@@ -181,7 +182,7 @@ impl main_server::MainServer
 
     let vector:Vec<String> = content.iter().map(|c| c.as_str().unwrap().to_string()).collect();
 
-    session.lock().await.retrive_from_db(db.clone(), &vector).await;
+    session.lock().await.retrive_from_db(&vector).await;
 
     let mut content =  serde_json::json!({});
 
@@ -232,7 +233,7 @@ impl main_server::MainServer
   {
     let preserved = request.get("preserved");
 
-    session.lock().await.retrive_from_db(db.clone(), &FINANCIAL_FILEDS).await;
+    session.lock().await.retrive_from_db(&FINANCIAL_FILEDS).await;
     let score = session.lock().await.estimate_score();
     return Ok(json!({
       "type": "estimate_score",
@@ -415,7 +416,7 @@ impl main_server::MainServer
     }));
   }
 
-  pub async fn get_bot_evaluation_worker(request : &Json, bot : Arc<Mutex<main_server::chatter::GptBot>>,
+  pub async fn get_bot_evaluation_worker(request : &Json, bot : Arc<ChatGPT>,
   session : Arc<Mutex<Session>>, db : Arc<Db>)
   -> Result<Json,()>
   {
@@ -453,7 +454,7 @@ impl main_server::MainServer
       }
     }
 
-    session.lock().await.retrive_from_db(db.clone(), &FINANCIAL_FILEDS).await;
+    session.lock().await.retrive_from_db(&FINANCIAL_FILEDS).await;
     let mut string_info = String::new(); 
     if session.lock().await.cash.is_some() {
       string_info.push_str(&format!("cash: ${}, ", session.lock().await.cash.unwrap()));
@@ -481,11 +482,12 @@ impl main_server::MainServer
     session.lock().await.username, string_info
     );
 
-    let response = bot.lock().await.generate_response(prompt.to_string()).await;
+    let response = bot.send_message(prompt).await;
     if response.is_err() {
       return Err(());
     }
     let content = response.unwrap();
+    let content = content.message().content.clone();
     let entry = doc! {
       "username":session.lock().await.username.clone(),
       "content": content.clone(),
@@ -514,6 +516,26 @@ impl main_server::MainServer
       "status": 200,
       "preserved": preserved,
       "content": content
+    }));
+  }
+
+  pub async fn send_message_to_bot_worker(request : &Json, session : Arc<Mutex<Session>>,
+    bot : Arc<ChatGPT>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content").and_then(|c| c.as_str());
+    if content.is_none() {
+      return Err(());
+    }
+    let msg = content.unwrap();
+    let response = 
+    session.lock().await.speak_to_bot(bot.clone(), msg.to_string()).await;
+    return Ok(json!({
+      "type": "send_message_to_bot",
+      "status": 200,
+      "preserved": preserved,
+      "content": response
     }));
   }
 }

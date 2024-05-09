@@ -3,7 +3,7 @@ mod utils;
 mod database;
 mod session;
 mod workers;
-mod chatter;
+
 use crate::ServerConfig;
 use data_structure::Json;
 use serde_json::json;
@@ -11,6 +11,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use chatgpt::client::ChatGPT;
 
 use self::database::Db;
 use self::session::Session;
@@ -22,7 +23,7 @@ pub struct MainServer
   db : Option<Arc<database::Db>>,
   listener : Option<TcpListener>,
   sessions: Arc<Mutex<session::Sessions>>,
-  gptbot : Option<Arc<Mutex<chatter::GptBot>>>
+  gptbot : Option<Arc<ChatGPT>>
 }
 
 impl MainServer {
@@ -32,12 +33,14 @@ impl MainServer {
     self.listener = Some(
       TcpListener::bind(format!("0.0.0.0:{}", self.config.port))
         .await.unwrap());
-    self.gptbot = Some(Arc::new(Mutex::new(chatter::GptBot::new(self.config.openai_key.clone()).await)));
+    let bot = ChatGPT::new(self.config.openai_key.clone()).unwrap();
+    self.gptbot = Some(Arc::new(bot));
     println!("Server started at {}", self.config.port);
   }
 
   async fn handle_stream(mut stream : TcpStream, db : Arc<Db>,
-    sessions : Arc<Mutex<session::Sessions>>)
+    sessions : Arc<Mutex<session::Sessions>>,
+    bot: Arc<ChatGPT>)
   {
     let mut buf = [0; 1024];
     let mut session : Option<Arc<Mutex<Session>>> = None;
@@ -147,6 +150,15 @@ impl MainServer {
                 Err(())
               }
             }
+            "send_message_to_bot" => {
+              if let Some(session) = session.clone()
+              {
+                Self::send_message_to_bot_worker(&request_json, session, bot.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
             _ => {
               Err(())
             }
@@ -196,7 +208,8 @@ impl MainServer {
 
       tokio::spawn(
           // Now you can call handle_stream with the cloned Arc<Mutex<Sessions>>
-          Self::handle_stream(stream, self.db.clone().unwrap(), sessions_clone)
+          Self::handle_stream(stream, self.db.clone().unwrap(), sessions_clone,
+        self.gptbot.clone().unwrap())
       );
     }
   }
