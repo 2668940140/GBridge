@@ -647,7 +647,10 @@ impl main_server::MainServer
     let preserved = request.get("preserved");
     let username = session.lock().await.username.clone();
     let cursor = db.public_deals.find(doc! {
-      "pos": username
+      "$or": [
+        {"lender_username": username.clone()},
+        {"borrower_username": username.clone()}
+      ]
     }, None).await;
     if cursor.is_err() {
       return Err(());

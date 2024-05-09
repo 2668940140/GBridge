@@ -274,6 +274,26 @@ impl MainServer {
                 Err(())
               }
             }
+            "get_user_posts"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::get_user_posts_worker(&request_json, session, db.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
+            "get_user_deals"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::get_user_deals_worker(&request_json, session, db.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
             _ => {
               Err(())
             }
