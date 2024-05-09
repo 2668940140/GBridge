@@ -9,6 +9,8 @@ use futures::StreamExt;
 use mongodb::bson::{self, doc, DateTime};
 use mongodb::Database;
 use serde_json::json;
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use chatgpt::client::ChatGPT;
 
@@ -115,7 +117,7 @@ impl main_server::MainServer
     }
   }
 
-  pub async fn update_user_info(request : &Json, db : Arc<Db>, 
+  pub async fn update_user_info(request : &Json, 
     session: Arc<Mutex<Session>>) -> Result<Json,()>
   {
     let content = request.get("content").
@@ -168,7 +170,7 @@ impl main_server::MainServer
     }));
   }
 
-  pub async fn get_user_info_worker(request : &Json, db : Arc<Db>, 
+  pub async fn get_user_info_worker(request : &Json,
     session: Arc<Mutex<Session>>) -> Result<Json,()>
   {
     let content = request.get("content").
@@ -228,7 +230,7 @@ impl main_server::MainServer
     }));
   }
 
-  pub async fn estimate_score_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
+  pub async fn estimate_score_worker(request : &Json, session : Arc<Mutex<Session>>)
   -> Result<Json,()>
   {
     let preserved = request.get("preserved");
@@ -537,5 +539,67 @@ impl main_server::MainServer
       "preserved": preserved,
       "content": response
     }));
+  }
+
+  pub async fn get_adviser_conversation_worker(request : &Json, session : Arc<Mutex<Session>>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    session.lock().await.retrieve_adviser_conversation().await;
+    let conversation = session.lock().await.adviser_conversation.clone();
+    return Ok(json!({
+      "type": "get_adviser_conversation",
+      "status": 200,
+      "preserved": preserved,
+      "content": conversation
+    }));
+  }
+
+  pub async fn send_message_to_adviser_worker(request : &Json, session : Arc<Mutex<Session>>,
+  adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content").and_then(|c| c.as_str());
+    if content.is_none() {
+      return  Err(());
+    }
+    let msg = content.unwrap();
+    session.lock().await.
+    append_adviser_conversation(msg.to_string(), "user".to_string()).await;
+    let adviser = adviser.lock().await;
+    if adviser.is_none() {
+      println!("Send message, but adviser is offline");
+      return Ok(
+        json!(
+          {
+            "type": "send_message_to_adviser",
+            "status": 200,
+            "preserved": preserved,
+          }
+        )
+      );
+    }
+    let adviser = adviser.as_ref().unwrap();
+    let mut adviser = adviser.lock().await;
+    let json = json!(
+      {
+        "username": session.lock().await.username.clone(),
+        "content": msg
+      }
+    );
+    let result = adviser.write_all(json.to_string().as_bytes()).await;
+    if result.is_err() {
+      println!("Send message, but adviser is offline");
+    }
+    return Ok(
+      json!(
+        {
+          "type": "send_message_to_adviser",
+          "status": 200,
+          "preserved": preserved,
+        }
+      )
+    );
   }
 }

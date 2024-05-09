@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc, vec};
 use chrono::{DateTime, Utc};
+use serde_json::json;
 use crate::main_server::database::Db;
 use chatgpt::converse;
 use chatgpt::client::ChatGPT;
@@ -22,6 +23,8 @@ pub struct Session
   pub assets : Option<f64>,
   pub email : Option<String>,
   pub bot_conversation : Option<converse::Conversation>,
+  pub adviser_conversation : Option<Json>,
+  last_adviser_conversation_retrieve_time: Option<DateTime<Utc>>,
   db : Arc<Db>,
   last_active_time: DateTime<Utc>,
 }
@@ -111,13 +114,18 @@ impl Session {
       assets: None,
       email: None,
       bot_conversation: None,
+      adviser_conversation: None,
       db: db,
       last_active_time: Utc::now(),
+      last_adviser_conversation_retrieve_time: None,
     }
   }
   async fn finish(&self)
   {
     self.send_bot_conversation_to_db().await;
+    if self.adviser_conversation.is_some() {
+      self.send_adviser_conversation_to_db().await;
+    }
   }
 
   async fn send_bot_conversation_to_db(&self)
@@ -130,7 +138,7 @@ impl Session {
     let path = file.path().to_str().unwrap().to_string();
     conversation.save_history_json(path.clone()).await.unwrap();
     let content = std::fs::read_to_string(path).unwrap();
-    self.db.users_bot_conservation.update_one(doc! {
+    self.db.users_bot_conversation.update_one(doc! {
       "username": &self.username
     }, doc! {
       "$set": {
@@ -140,10 +148,68 @@ impl Session {
     }, None).await.unwrap();
   }
 
+  pub async fn retrieve_adviser_conversation(&mut self)
+  {
+    if self.last_adviser_conversation_retrieve_time.is_some()
+    {
+      return;
+    }
+
+    self.last_adviser_conversation_retrieve_time = Some(Utc::now());
+    let received = self.db.users_adviser_conversation.find_one(doc! {
+      "username": &self.username
+    }, None).await.unwrap();
+    if received.is_none() {
+      return;
+    }
+    let received = received.unwrap();
+    let content = received.get("content").unwrap().as_str().unwrap();
+    let conversation = serde_json::from_str(content).unwrap();
+    self.adviser_conversation = Some(conversation);
+  }
+
+  pub async fn send_adviser_conversation_to_db(&self)
+  {
+    if self.adviser_conversation.is_none() {
+      return;
+    }
+    let conversation = self.adviser_conversation.as_ref().unwrap();
+    let content = serde_json::to_string(conversation).unwrap();
+    self.db.users_adviser_conversation.update_one(doc! {
+      "username": &self.username
+    }, doc! {
+      "$set": {
+        "content": content,
+        "time": Utc::now().to_rfc3339()
+      }
+    }, None).await.unwrap();
+  }
+
+  pub async fn append_adviser_conversation(&mut self, 
+    msg : String, role : String)
+  {
+    if self.last_adviser_conversation_retrieve_time.is_none() {
+      self.retrieve_adviser_conversation().await;
+    }
+    if self.adviser_conversation.is_none() {
+      self.adviser_conversation = Some(json!([]));
+    }
+    assert!(role == "user" || role == "adviser");
+    let entry = json!(
+      {
+        "role": role,
+        "msg": msg,
+        "time": Utc::now().to_rfc3339()
+      }
+    );
+    let conversation = self.adviser_conversation.as_mut().unwrap();
+    conversation.as_array_mut().unwrap().push(entry);
+  }
+
   async fn retrieve_bot_conversation(&mut self, 
     client: Arc<ChatGPT>)
   {
-    let received = self.db.users_bot_conservation.find_one(doc! {
+    let received = self.db.users_bot_conversation.find_one(doc! {
       "username": &self.username
     }, None).await.unwrap();
     if received.is_none() {
