@@ -71,6 +71,14 @@ impl Sessions
     session
   }
 
+  pub async fn clear_sessions(&mut self)
+  {
+    for (_, session) in self.sessions.iter() {
+      session.lock().await.finish().await;
+    }
+    self.sessions.clear();
+  }
+
   pub async fn clean_outdated_sessions(&mut self)
   {
     println!("Cleaning outdated sessions");

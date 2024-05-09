@@ -6,7 +6,9 @@ mod workers;
 
 use crate::ServerConfig;
 use data_structure::Json;
+use futures::FutureExt;
 use serde_json::json;
+use tokio::signal::ctrl_c;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
@@ -192,7 +194,6 @@ impl MainServer {
     }
 
     println!("Connection closed");
-
   }
 
   pub async fn run(mut self) {
@@ -201,18 +202,27 @@ impl MainServer {
     tokio::spawn(Self::clean_outdated_sessions(self.sessions.clone()));
 
     loop {
-      println!("Waiting for connection");
-      let (stream, _) = self.listener.as_mut().unwrap().accept().await.unwrap();
-      println!("New connection");        // Clone the Arc<Mutex<Sessions>> here
-      let sessions_clone = self.sessions.clone();
+        // ...
 
-      tokio::spawn(
-          // Now you can call handle_stream with the cloned Arc<Mutex<Sessions>>
-          Self::handle_stream(stream, self.db.clone().unwrap(), sessions_clone,
-        self.gptbot.clone().unwrap())
-      );
+        tokio::select! {
+          Ok((stream, _)) = self.listener.as_mut().unwrap().accept() => {
+            println!("New connection");
+            let sessions_clone = self.sessions.clone();
+
+            tokio::spawn(
+              Self::handle_stream(stream, self.db.clone().unwrap(), sessions_clone,
+              self.gptbot.clone().unwrap())
+            );
+          }
+          _ = ctrl_c().fuse() => {
+            println!("Ctrl+C received, stopping server");
+            self.stop().await;
+            break;
+          }
+            }
+        }
     }
-  }
+  
 
   pub fn new(server_config : &ServerConfig) -> MainServer {
     MainServer {
@@ -230,5 +240,10 @@ impl MainServer {
       tokio::time::sleep(Duration::from_secs(600)).await;
       sessions.lock().await.clean_outdated_sessions().await;
     }
+  }
+
+  pub async fn stop(&mut self)
+  {
+    self.sessions.lock().await.clear_sessions();
   }
 }
