@@ -196,8 +196,8 @@ impl Session {
             self.portrait = receive_item.unwrap().as_str().map(|s| s.to_string());
           }
         },
-        "money" => {
-          let receive_item = received.get("money");
+        "cash" => {
+          let receive_item = received.get("cash");
           if receive_item.is_some() {
             self.cash = receive_item.unwrap().as_f64();
           }
@@ -252,9 +252,9 @@ impl Session {
             update.insert("portrait", self.portrait.as_ref().unwrap());
           }
         },
-        "money" => {
+        "cash" => {
           if self.cash.is_some() {
-            update.insert("money", self.cash.as_ref().unwrap());
+            update.insert("cash", self.cash.as_ref().unwrap());
           }
         },
         "income" => {
