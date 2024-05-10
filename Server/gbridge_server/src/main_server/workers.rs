@@ -6,7 +6,7 @@ use crate::main_server;
 use crate::main_server::data_structure::Json;
 use chrono::{FixedOffset, Utc};
 use futures::StreamExt;
-use mongodb::bson::{self, doc, DateTime};
+use mongodb::bson::{self, doc, DateTime, Document};
 use mongodb::Database;
 use serde_json::json;
 use tokio::io::AsyncWriteExt;
@@ -315,8 +315,22 @@ impl main_server::MainServer
   pub async fn get_market_posts_worker(request : &Json, db : Arc<Db>) -> Result<Json,()>
   {
     let preserved = request.get("preserved");
-  
-    let cursor = db.public_market.find(doc! {}, None).await;
+    let content = request.get("content").and_then(|f| f.as_str());
+    let mut filter = doc! {};
+    if content.is_some()
+    {
+      let content = content.unwrap();
+      let content_bytes = content.as_bytes();
+      let mut content_reader = std::io::Cursor::new(content_bytes);
+      let content = bson::Document::from_reader(&mut content_reader);
+      if content.is_err()
+      {
+        return Err(());
+      }
+      filter = content.unwrap();
+    }
+
+    let cursor = db.public_market.find(filter, None).await;
     if cursor.is_err() {
       return Err(());
     }
