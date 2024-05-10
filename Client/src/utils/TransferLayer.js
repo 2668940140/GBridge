@@ -1,23 +1,20 @@
 // utils/TransferLayer.js
 import TcpSocket from 'react-native-tcp-socket';
-import config from '../config/config.json'; 
-import { AsynLoad, AsynSave, AsynRemove } from './AsynSL';
-import { Alert } from 'react-native';
 
 class TransferLayer {
     constructor() {
         this.socket = null;
         this.retryCount = 0;
-        this.maxRetries = config.connection.maxRetries;
-        this.retryDelay = config.connection.retryDelay;
+        this.maxRetries = maxRetries;
+        this.retryDelay = retryDelay;
     }
 
     connect() {
         return new Promise((resolve, reject) => {
             if (!this.socket) {
                 this.socket = TcpSocket.createConnection({
-                    host: config.server.ip,
-                    port: config.server.port
+                    host: host,
+                    port: port
                 }, () => {
                     console.log('Connected to server!');
                     this.setupResponseHandler();
@@ -57,6 +54,8 @@ class TransferLayer {
         });
     }
 
+    onSessionExpired = null;
+
     setupResponseHandler() {
         this.socket.on('data', async (data) => {
             let jsonResponse;
@@ -65,26 +64,24 @@ class TransferLayer {
                 console.log('Received:', jsonResponse);
                 
                 if(jsonResponse.status !== 200) {
-                    console.error('Error:', jsonResponse.extra.error);
-                    Alert.alert('Error', jsonResponse.extra.error);
-                    return;
+                    jsonResponse.success = false;
                 }
-                // Check for session expiry
+                else{
+                    jsonResponse.success = true;
+                    // Check for session expiry
                 if (jsonResponse.sessionExpired) {
-                    AsynRemove('sessionToken');
                     if (this.onSessionExpired) {
                         this.onSessionExpired();
                     }
                     // Check for session update
                     if (jsonResponse.user) {
-                        AsynSave('sessionToken', jsonResponse.user);
+                        sessionToken = jsonResponse.user;
                     }
                 }
-                
-                jsonResponse.content.preserved = jsonResponse.preserved;
+                }
 
                 if (this.onResponseReceived) {
-                    this.onResponseReceived(jsonResponse.content);
+                    this.onResponseReceived(jsonResponse);
                 }
             } catch (error) {
                 console.error('Error parsing JSON!', error);
@@ -93,7 +90,7 @@ class TransferLayer {
     }
 
     async sendRequest(requestObject, onResponseReceived) {
-        requestObject.user = await AsynLoad('sessionToken');
+        requestObject.user = sessionToken
         requestObject.preserved = requestObject.type;
         
         this.onResponseReceived = onResponseReceived;
@@ -112,6 +109,7 @@ class TransferLayer {
             const jsonRequest = JSON.stringify(requestObject);
             this.socket.write(jsonRequest, 'utf8', () => {
                 console.log('Request sent:', jsonRequest);
+                console.log('bytes written:', this.socket.bytesWritten);
             });
         } else {
             console.error('No connection established.');

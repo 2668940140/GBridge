@@ -2,159 +2,118 @@
 import React from 'react';
 import { View, TextInput, Button, Text, StyleSheet, Image, TouchableOpacity} from 'react-native';
 import { ActivityIndicator } from 'react-native';
-import { UsernameInput, PasswordInput } from '../components/RuleTextInput';
-import ImagePicker from 'react-native-image-picker';
-import BaseInterface from '../components/BaseComponent';
-import DefaultUserIcon from './src/assets/default_user_icon.png';
+import { pickCropImage } from '../utils/ImagePicker';
+import BaseConInterface from './BaseConInterface';
+import { resetNavigator } from '../utils/ResetNavigator';
+import DefaultUserIcon from '../assets/default_user_icon.png';
+import { TwoButtonsInline } from '../components/MyButton';
+import NumberInput from '../components/NumberInput';
 
-class PersonalSettings extends BaseInterface {
+class PersonalSettings extends BaseConInterface {
     constructor(props) {
         super(props);
+        const { userIcon = null, cash = Number(0), income = Number(0), expenditure = Number(0), debt = Number(0), assets = Number(0)} = this.props.route.params || {};
         this.state = {
-            username: '',
-            newUsername: '',
-            newUsernameValid: true,
-            email: '',
-            userIcon: null,
+            userIcon: userIcon,
             newIcon: null,
-            newPassword: '',
-            newPasswordValid: true,
-            passwordConfirm: '',
-            verified: false,
-            mode: 'view',
-            loading: true,  // Initial state for loading
+            cash: cash,
+            income: income,
+            expenditure: expenditure,
+            debt: debt,
+            assets: assets,
+            cashValid: true,
+            incomeValid: true,
+            expenditureValid: true,
+            debtValid: true,
+            assetsValid: true,
+            loading: false,  // Initial state for loading
             isLoading: false
         };
     }
-    
-    componentDidMount() {
-        this.establishConnection();
-        if (!this.loading) {
-            this.fetchUserData();
-        }
-    }
-    
-    fetchUserData = () => {
-        this.transferLayer.sendRequest({
-            type: "getUserData",
-            content: {},
-            extra:null
-        }, this.handleUserDataResponse);
-    };
-    
-    handleUserDataResponse = (response) => {
-        if (response.success) {
-            const { username, email, userIcon, verified } = response.data;
-            this.setState({
-                username,
-                email,
-                userIcon,
-                verified,
-                loading: false  // Stop the loading indicator
-            });
-        } else {
-            this.displayErrorMessage("Failed to fetch user data.");
-            this.setState({ loading: false });  // Stop the loading indicator even if there's an error
-        }
-    };
-    
 
-    handleConfirmPress = async () => {
-        const { newUsername, newPassword, passwordConfirm, newIcon } = this.state;
-
-        if (newPassword !== passwordConfirm) {
-            this.displayErrorMessage("Passwords do not match.");
-            return;
-        }
-
-        if (newUsername || passwordConfirm || newIcon) {
+    handleConfirmPress = () => {
+        const { newIcon, cash, income, expenditure, debt, assets } = this.state;
+        if (cash !== null && income !== null && expenditure !== null && debt !== null && assets !== null || newIcon) {
             this.setState({ isLoading: true });  // Start loading
+            let content ={};
+            if(newIcon){
+                content['portrait'] = newIcon;
+            }
+            content['cash'] = cash;
+            content['income'] = income;
+            content['expenditure'] = expenditure;
+            content['debt'] = debt;
+            content['assets'] = assets;
             this.transferLayer.sendRequest({
-                type: "updateProfile",
-                content: {
-                    username : newUsername,
-                    password : newPassword,
-                    userIcon : newIcon
-                },
+                type: "update_user_info",
+                content: content,
                 extra: null
             }, this.handleProfileUpdateResponse);
         } else {
             this.displayErrorMessage("Please enter valid changes.");
         }
-    };
+    }
 
     handleProfileUpdateResponse = (response) => {
-        const { newUsername,  newIcon } = this.state;
+        const { newIcon } = this.state;
         this.setState({ isLoading: false });  // Stop loading
         if (response.success) {
             this.displaySuccessMessage('Profile updated successfully!');
-            this.setState({ userIcon: newUsername, userIcon: newIcon});
-            this.setState({ mode: 'view', passwordConfirm: '', newPassword: '', newIcon: null, newUsername: ''});
+            this.setState({ userIcon: newIcon, newIcon: null});
         } else {
-            this.displayErrorMessage('Failed to update profile. ' + response.message);
+            this.displayErrorMessage('Failed to update profile. ');
         }
     };
 
-    pickImage = () => {
-        const options = {
-            noData: true,
-            mediaType: 'photo',
-            quality: 1,
-            includeBase64: true,
-        };
-
-        ImagePicker.showImagePicker(options, response => {
-            if (response.didCancel) {
-                console.log('User cancelled image picker');
-            } else if (response.error) {
-                console.log('ImagePicker Error: ', response.error);
-            } else {
-                this.setState({ newIcon: response.uri });
-            }
-        });
-    };
-
-    handleVerificationPress = () => {
-        resetNavigator(this.props.navigation, 'VerificationInterface');
+    setImage = (image) => {
+        this.setState({ newIcon: image });
     };
 
     render() {
-        const { mode, username, userIcon, passwordConfirm, verified, loading } = this.state;
+        const { loading, incomeValid, cashValid, expenditureValid, assetsValid, debtValid } = this.state;
+        const { cash = Number(0), income = Number(0), expenditure = Number(0), debt = Number(0), assets = Number(0)} = this.props.route.params || {};
+        let userIcon = this.state.newIcon || this.state.userIcon;
         if (loading) return super.render();  // Show loading indicator
     
         return (
             <View style={styles.container}>
-                <Image source={{ uri: userIcon || DefaultUserIcon }} style={styles.icon} />
-                <Text>Username: {username}</Text>
-                <Text>Email: {this.props.email}</Text>
-                <Text>{verified ? 'Verified' : 'Not Verified'}</Text>
-    
-                {mode === 'view' ? (
-                    <>
-                        <Button title="Modify" onPress={() => this.setState({ mode: 'edit' })} />
-                        <Button title="Start Verification" onPress={this.handleVerificationPress} />
-                    </>
-                ) : (
-                    <>
-                        <TouchableOpacity onPress={this.pickImage}>
-                            <Text>Upload New Icon</Text>
-                        </TouchableOpacity>
-                        <UsernameInput
-                        placeholder="New Username"
-                        allowEmpty={true}
-                        onTextChange={(username, isValid) => this.setState({ newUsername: username, newUsernameValid: isValid})}
-                        />
-                        <PasswordInput
-                        placeholder="New Password"
-                        allowEmpty={true}
-                        onTextChange={(password, isValid) => this.setState({ newPassword: password, newPasswordValid: isValid})}
-                        />
-                        <TextInput secureTextEntry value={passwordConfirm} onChangeText={text => this.setState({ passwordConfirm: text })} placeholder="Confirm New Password" />
-                        <Button title="Confirm Changes" onPress={this.handleConfirmPress} disabled={this.state.isLoading || !this.state.newPasswordValid || !this.state.newUsernameValid }/>
-                        {this.state.isLoading && (
-                        <ActivityIndicator size="large" color="#0000ff" />
-                        )}
-                    </>
+                <Image source={userIcon ? { uri: userIcon } : DefaultUserIcon} style={styles.icon} />
+                <TouchableOpacity onPress={()=> pickCropImage(this.setImage)}>
+                    <Text style={styles.picText}>Upload New Icon</Text>
+                </TouchableOpacity>
+                <NumberInput iniValue={cash.toString()} prompt="Cash" updateValue={(value) => {
+                    if(value !== null)
+                        this.setState({ cash: value, cashValid: true });
+                    else
+                        this.setState({ cashValid: false });
+                }} />
+                <NumberInput iniValue={income.toString()} prompt="Income" updateValue={(value) => {
+                    if(value !== null)
+                        this.setState({ income: value, incomeValid: true  });
+                    else
+                        this.setState({ incomeValid: false });
+                }} tail="/mouth" />
+                <NumberInput iniValue={expenditure.toString()} prompt="Expenditure" updateValue={(value) => {
+                    if(value !== null)
+                        this.setState({ expenditure: value, expenditureValid: true  });
+                    else
+                        this.setState({ expenditureValid: false });
+                }} tail="/mouth"/>
+                <NumberInput iniValue={debt.toString()} prompt="Debt" updateValue={(value) => {
+                    if(value !== null)
+                        this.setState({ debt: value, debtValid: true  });
+                    else
+                        this.setState({ debtValid: false });
+                }} />
+                <NumberInput iniValue={assets.toString()} prompt="Assets" updateValue={(value) => {
+                    if(value !== null)
+                        this.setState({ assets: value, assetsValid: true  });
+                    else
+                        this.setState({ assetsValid: false });
+                }} />
+                <TwoButtonsInline title1="Confirm" title2="Home" onPress1={this.handleConfirmPress} onPress2={() => resetNavigator(this.props.navigation, 'Home')} disable1={!cashValid || !incomeValid || !expenditureValid || !debtValid || !assetsValid} disable2={this.state.isLoading} />
+                {this.state.isLoading && (
+                    <ActivityIndicator size="large" color="#0000ff" />
                 )}
             </View>
         );
@@ -162,14 +121,6 @@ class PersonalSettings extends BaseInterface {
 }    
 
 const styles = StyleSheet.create({
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    activityIndicator: {
-        transform: [{ scale: 1.5 }]  // Adjust scale as needed
-    },
     container: {
         flex: 1,
         alignItems: 'center',
@@ -180,6 +131,10 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
+    },
+    picText: {
+        color: 'blue',
+        marginVertical: 5,
     }
 });
 

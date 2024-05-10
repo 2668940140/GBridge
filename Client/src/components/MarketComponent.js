@@ -111,7 +111,7 @@ class MarketList extends BaseComponent {
     );
 
     render() {
-        const { items, availableFilters, selectedFilters } = this.state;
+        const { items, availableFilters, selectedFilters, showModal } = this.state;
         return (
             <View style={{ flex: 1 }}>
                 <MultiSelect

@@ -7,20 +7,25 @@ import MarketComponent from '../components/MarketComponent';
 
 const HomeScreen = ({ navigation }) => {
     return (
-        <ScrollView style={styles.container}>
+        <View style={styles.container}>
             <Text style={styles.title}>Welcome to JinQiaoTong!</Text>
-            <ProfileBoard navigation={navigation} targetScreen={'PersonalPage'} />
+            <View style={styles.personContainer}>
+                <ProfileBoard navigation={navigation} targetScreen={'PersonalPage'} />
+                <ScoreBoard navigation={navigation} targetScreen={'Score'}/>
+            </View>
             <LoanRepaymentList navigation={navigation} />
-            <ScoreBoard navigation={navigation} />
             <MarketComponent navigation={navigation} />
-        </ScrollView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        backgroundColor: '#fff'
+        //flex: 1,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
     },
     title: {
         fontSize: 24,
@@ -28,6 +33,12 @@ const styles = StyleSheet.create({
         marginTop: 20,
         marginBottom: 20,
         textAlign: 'center'
+    },
+    personContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 10,
     }
 });
 
