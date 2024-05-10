@@ -547,6 +547,31 @@ impl main_server::MainServer
     }));
   }
 
+  pub async fn get_bot_conversation_worker(request : &Json, session : Arc<Mutex<Session>>,
+    db : Arc<Db>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let username = session.lock().await.username.clone();
+    let response = db.users_bot_conversation.find_one(
+      doc! {
+        "username": username
+      }, None).await;
+    if response.is_err() {
+      return Err(());
+    }
+    let response = response.unwrap();
+    if response.is_none() {
+      return Ok(json!({
+        "type": "get_bot_conversation",
+        "status": 200,
+        "preserved": preserved,
+        "content": json!([])
+      }));
+    }
+    Err(())
+  }
+
   pub async fn get_adviser_conversation_worker(request : &Json, session : Arc<Mutex<Session>>)
   -> Result<Json,()>
   {

@@ -324,6 +324,16 @@ impl MainServer {
                 Err(())
               }
             }
+            "get_bot_conversation"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::get_bot_conversation_worker(&request_json, session, db.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
             _ => {
               Err(())
             }
