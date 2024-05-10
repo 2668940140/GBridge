@@ -478,32 +478,13 @@ impl main_server::MainServer
       }
     }
 
-    session.lock().await.retrive_from_db(&FINANCIAL_FILEDS).await;
-    let mut string_info = String::new(); 
-    if session.lock().await.cash.is_some() {
-      string_info.push_str(&format!("cash: ${}, ", session.lock().await.cash.unwrap()));
-    }
-    if session.lock().await.income.is_some() {
-      string_info.push_str(&format!("income: ${}/month, ", session.lock().await.income.unwrap()));
-    }
-    if session.lock().await.expenditure.is_some() {
-      string_info.push_str(&format!("expenditure: ${}/month, ", session.lock().await.expenditure.unwrap()));
-    }
-    if session.lock().await.debt.is_some() {
-      string_info.push_str(&format!("debt: ${}, ", session.lock().await.debt.unwrap()));
-    }
-    if session.lock().await.assets.is_some() {
-      string_info.push_str(&format!("assets: ${}, ", session.lock().await.assets.unwrap()));
-    }
-    if string_info.len() == 0
-    {
-      string_info.push_str("no financial information");
-    }
+    let financial_summary = 
+    session.lock().await.get_financial_summary().await;
 
 
     let prompt = format!("Now you are a professional advisor, please give some advice to the user {},
     who has the following financial status: {}.",
-    session.lock().await.username, string_info
+    session.lock().await.username, financial_summary
     );
 
     let response = bot.send_message(prompt).await;
@@ -552,7 +533,8 @@ impl main_server::MainServer
     }
     let msg = content.unwrap();
     let response = 
-    session.lock().await.speak_to_bot(bot.clone(), msg.to_string()).await;
+    session.lock().await.speak_to_bot(bot.clone(), msg.to_string(),
+    session.clone()).await;
     return Ok(json!({
       "type": "send_message_to_bot",
       "status": 200,

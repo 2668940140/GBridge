@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, vec};
+use std::{collections::HashMap, string, sync::Arc, vec};
 use chrono::{DateTime, Utc};
 use serde_json::json;
 use crate::main_server::database::Db;
@@ -98,8 +98,8 @@ impl Sessions
       self.sessions.remove(username.as_str());
     }
   }
-    
 }
+
 
 impl Session {
   pub fn new(username: String, db : Arc<Db>) -> Self
@@ -253,7 +253,7 @@ impl Session {
   }
 
   pub async fn speak_to_bot(&mut self, bot: Arc<ChatGPT>, 
-    message: String)
+    message: String, session: Arc<Mutex<Session>>)
   -> String
   {
     if self.bot_conversation.is_none() {
@@ -268,7 +268,10 @@ impl Session {
       self.bot_conversation = Some(conversation);
     }
     let conversation = self.bot_conversation.as_mut().unwrap();
-    let response = conversation.send_message(message).await
+    let merged_msg = format!("System: {}\nUser: {}", 
+    session.lock().await.get_financial_summary().await, message);
+    
+    let response = conversation.send_message(merged_msg).await
     .unwrap();
     response.message().content.clone()
   }
@@ -428,6 +431,32 @@ impl Session {
   {
     self.last_active_time
   }
+
+  pub async fn get_financial_summary(&mut self) -> String
+  {
+    self.retrive_from_db(&FINANCIAL_FILEDS).await;
+    let mut string_info = format!("User {} financial summary: ", self.username); 
+    if self.cash.is_some() {
+      string_info.push_str(&format!("cash: ${}, ", self.cash.unwrap()));
+    }
+    if self.income.is_some() {
+      string_info.push_str(&format!("income: ${}/month, ", self.income.unwrap()));
+    }
+    if self.expenditure.is_some() {
+      string_info.push_str(&format!("expenditure: ${}/month, ", self.expenditure.unwrap()));
+    }
+    if self.debt.is_some() {
+      string_info.push_str(&format!("debt: ${}, ", self.debt.unwrap()));
+    }
+    if self.assets.is_some() {
+      string_info.push_str(&format!("assets: ${}, ", self.assets.unwrap()));
+    }
+    if string_info.len() == 0
+    {
+      string_info.push_str("no financial information");
+    }
+    return string_info;
+}
 
   pub async fn get_last_update_time(&self, db: Arc<Db>)
   -> DateTime<Utc>
