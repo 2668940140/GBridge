@@ -13,6 +13,7 @@ pub struct Db
   pub users_bot_evaluation : Collection<Document>,
   pub users_bot_conversation : Collection<Document>,
   pub users_adviser_conversation : Collection<Document>,
+  pub users_notification : Collection<Document>,
   pub public_db : Database,
   pub public_market : Collection<Document>,
   pub public_deals : Collection<Document>,
@@ -29,6 +30,7 @@ impl Db {
     let users_bot_evaluation = user_db.collection("bot_evaluation");
     let users_bot_conversation = user_db.collection("bot_conversation");
     let users_adviser_conversation = user_db.collection("adviser_conversation");
+    let users_notification = user_db.collection("notification");
     let public_db = client.database("public");
     let public_market = public_db.collection("market");
     let public_deals = public_db.collection("deals");
@@ -42,6 +44,7 @@ impl Db {
       users_bot_evaluation: users_bot_evaluation,
       users_bot_conversation : users_bot_conversation,
       users_adviser_conversation : users_adviser_conversation,
+      users_notification : users_notification,
       public_db: public_db,
       public_market: public_market,
       public_deals: public_deals,

@@ -294,6 +294,36 @@ impl MainServer {
                 Err(())
               }
             }
+            "complete_deal"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::complete_deal_worker(&request_json, db.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
+            "send_notification"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::send_notification_worker(&request_json, session, db.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
+            "get_notification"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::get_notification_worker(&request_json, session, db.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
             _ => {
               Err(())
             }

@@ -673,4 +673,111 @@ impl main_server::MainServer
       "content": content
     }));
   }
+
+  pub async fn complete_deal_worker(request : &Json, db : Arc<Db>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content");
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+    let _id = content.get("_id").and_then(|i| i.as_str());
+    if _id.is_none() {
+      return Err(());
+    }
+    let _id = _id.unwrap();
+    let doc = db.public_deals.find_one(doc! {
+      "_id": bson::oid::ObjectId::parse_str(_id).unwrap()
+    }, None).await;
+    if doc.is_err() {
+      return Err(());
+    }
+    let doc = doc.unwrap();
+    if doc.is_none() {
+      return Err(());
+    }
+    db.public_history_deals.insert_one(doc.unwrap(), None).await.unwrap();
+    let response = db.public_deals.delete_one(doc! {
+      "_id": bson::oid::ObjectId::parse_str(_id).unwrap()
+    }, None).await;
+    if response.is_err() {
+      return Err(());
+    }
+    return Ok(json!({
+      "type": "complete_deal",
+      "status": 200,
+      "preserved": preserved
+    }));
+  }
+
+  pub async fn send_notification_worker(request : &Json, session : Arc<Mutex<Session>>,
+  db : Arc<Db>)
+  ->Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content");
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+    let receiver = content.get("receiver").and_then(|r| r.as_str());
+    if receiver.is_none() {
+      return Err(());
+    }
+    let receiver = receiver.unwrap();
+    let content = content.get("content");
+    let content_bson = content.clone().map(|c| bson::to_bson(c).unwrap());
+    
+    if content.is_none() {
+      return Err(());
+    }
+    let mail = doc!
+    {
+      "sender": session.lock().await.username.clone(),
+      "receiver": receiver,
+      "content": content_bson,
+      "time": chrono::Utc::now().to_rfc3339()
+    };
+    db.users_notification.insert_one(mail, None).await.unwrap();
+    return Ok(json!({
+      "type": "send_notification",
+      "status": 200,
+      "preserved": preserved
+    }));
+  }
+
+  pub async fn get_notification_worker(request : &Json, session : Arc<Mutex<Session>>,
+  db : Arc<Db>)->Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let username = session.lock().await.username.clone();
+    let cursor = db.users_notification.find(doc! {
+      "$or": [
+        {"sender": username.clone()},
+        {"receiver": username.clone()}
+      ]
+    }, None).await;
+    if cursor.is_err() {
+      return Err(());
+    }
+    let mut cursor = cursor.unwrap();
+    let mut content = json!([]);
+    while let Some(result) = cursor.next().await {
+      match result {
+        Ok(doc) => {
+          let doc = bson::to_bson(&doc).unwrap(); // Convert bson to json
+          content.as_array_mut().unwrap().push(doc.into());
+        }
+        Err(e) => return Err(()),
+      }
+    }
+    return Ok(json!({
+      "type": "get_notification",
+      "status": 200,
+      "preserved": preserved,
+      "content": content
+    }));
+  }
 }
