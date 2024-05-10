@@ -138,14 +138,27 @@ impl Session {
     let path = file.path().to_str().unwrap().to_string();
     conversation.save_history_json(path.clone()).await.unwrap();
     let content = std::fs::read_to_string(path).unwrap();
-    self.db.users_bot_conversation.update_one(doc! {
+    
+    let existing_doc = self.db.users_bot_conversation.find_one(doc! {
       "username": &self.username
-    }, doc! {
-      "$set": {
+    }, None).await.unwrap();
+
+    if existing_doc.is_some() {
+      self.db.users_bot_conversation.update_one(doc! {
+        "username": &self.username
+      }, doc! {
+        "$set": {
+          "content": content,
+          "time": Utc::now().to_rfc3339()
+        }
+      }, None).await.unwrap();
+    } else {
+      self.db.users_bot_conversation.insert_one(doc! {
+        "username": &self.username,
         "content": content,
         "time": Utc::now().to_rfc3339()
-      }
-    }, None).await.unwrap();
+      }, None).await.unwrap();
+    }
   }
 
   pub async fn retrieve_adviser_conversation(&mut self)
