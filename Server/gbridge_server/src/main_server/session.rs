@@ -381,15 +381,14 @@ impl Session {
     if self.debt.is_some() && self.assets.is_some(){
       score = score * (self.assets.unwrap() + 500.0) / (self.debt.unwrap() + 500.0);
     }
-
+    
+    if self.cash.is_some() && self.assets.is_some(){
+      score = score *  f64::min(f64::max(
+        (self.cash.unwrap() * 10.0 + 500.0) / (self.assets.unwrap() + 500.0)
+        , 0.5),1.2);
+    }
     if self.debt.is_some() && self.cash.is_some(){
       score = score * (self.cash.unwrap() + 500.0) / (self.debt.unwrap() + 500.0);
-    }
-    if score > 1.0 {
-      score = 1.0;
-    }
-    if score < 0.0 {
-      score = 0.0;
     }
     score = f64::max(f64::min(score, 1.0), 0.0);
     score
