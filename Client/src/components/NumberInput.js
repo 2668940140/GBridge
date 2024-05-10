@@ -40,6 +40,30 @@ const NumberInput = ({iniValue, prompt, tail, updateValue}) => {
     );
   };
   
+const LabelInput = ({iniValue, prompt, tail, updateValue}) => {
+    const [input, setInput] = useState(iniValue);  // Initial value for the TextInput
+
+    const handleInputChange = (text) => {
+      setInput(text); 
+      updateValue(text);
+    };
+  
+    return (
+      <View style={styles.container}>
+        <Text style={styles.prompt}>{prompt + ":"}</Text>
+        <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          value={input}
+          placeholder={iniValue}
+          onChangeText={handleInputChange}  // Update the input based on user entry
+        />
+        </View>
+        {tail && <Text style={styles.label}>{tail}</Text>}
+      </View>
+    );
+  };
+
   const styles = StyleSheet.create({
     container: {
       alignItems: 'center',
@@ -84,5 +108,5 @@ const NumberInput = ({iniValue, prompt, tail, updateValue}) => {
     }
   });
   
-  export default NumberInput;
+  export { NumberInput, LabelInput };
   

@@ -58,6 +58,7 @@ class TransferLayer {
 
     setupResponseHandler() {
         this.socket.on('data', async (data) => {
+            console.log('Received:', data);
             let jsonResponse;
             try {
                 jsonResponse = JSON.parse(data);

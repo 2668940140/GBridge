@@ -13,7 +13,7 @@ const HomeScreen = ({ navigation }) => {
                 <ProfileBoard navigation={navigation} targetScreen={'PersonalPage'} />
                 <ScoreBoard navigation={navigation} targetScreen={'Score'}/>
             </View>
-            <LoanRepaymentList navigation={navigation} />
+            
             <MarketComponent navigation={navigation} />
         </View>
     );
