@@ -1,29 +1,22 @@
 import React from "react";
-import RuleTextInput from "../components/RuleTextInput";
-import { View } from "react-native";
+import PersonalInfo from "../screens/PersonalInfo";
+import PersonalSettings from "../screens/PersonalSettings";
+import { View, StyleSheet } from "react-native";
 
 const AppTest = () => {
-    const [name, setName] = React.useState("");
-    const [nameValid, setNameValid] = React.useState(false);
-    
-    const validateName = (name) => {
-        return name.length > 4;
-    }
-
     return (
-        <View>
-            <RuleTextInput 
-                placeholder="Enter your name"
-                rules="name"
-                check={validateName}
-                onTextChange={(text, isValid) => {
-                    setName(text);
-                    setNameValid(isValid);
-                }}
-            />
+        <View style={styles.container}>
+            <PersonalSettings />
         </View>
     )
 };
 
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    }
+});
 
 export default AppTest;

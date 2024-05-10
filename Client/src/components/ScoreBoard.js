@@ -1,44 +1,44 @@
 import React, { Component } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import TransferLayer from '../utils/TransferLayer';
-import BaseComponent from './BaseComponent';
+import BaseConComponent from './BaseConComponent';
 
-class ScoreBoard extends BaseComponent {
+class ScoreBoard extends BaseConComponent {
     constructor(props) {
         super(props);
         this.state = {
-            score: null,
+            score: 0.5,
             loading: true
         };
-        this.transferLayer = new TransferLayer();
     }
 
     componentDidMount() {
-        this.transferLayer.connect().then(() => {
-            this.transferLayer.sendRequest({
-                type: "getScore",
-                content: {},
-                extra: null
-            }, this.handleScoreResponse);
-        }).catch(error => {
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
-            this.setState({ loading: false });
+        this.establishConnection().then(() => {
+            this.transferLayer.connect().then(() => {
+                this.transferLayer.sendRequest({
+                    type: "estimate_score",
+                    content: {},
+                    extra: null
+                }, this.handleScoreResponse);
+            }).catch(error => {
+                this.displayErrorMessage("Failed to connect to server: " + error.message);
+                this.setState({ loading: false });
+            });
+        }
+        ).catch(() => {
+            this.establishConnectionFailure();
         });
-    }
-
-    componentWillUnmount() {
-        this.transferLayer.closeConnection();
     }
 
     handleScoreResponse = (response) => {
         if (response.success) {
             this.setState({
-                score: response.score,
+                score: response.content.score,
                 loading: false
             });
         } else {
             this.displayErrorMessage("Failed to retrieve score.");
-            this.setState({ loading: false });
+            //this.setState({ loading: false });
         }
     }
 
@@ -53,7 +53,7 @@ class ScoreBoard extends BaseComponent {
         return (
             <TouchableOpacity style={styles.container} onPress={() => navigation.navigate(targetScreen)}>
                 <Text style={styles.scoreLabel}>Your Score:</Text>
-                <Text style={styles.score}>{score}</Text>
+                <Text style={styles.score}>{score.toFixed(2)}/1.00</Text>
             </TouchableOpacity>
         );
     }
@@ -61,7 +61,8 @@ class ScoreBoard extends BaseComponent {
 
 const styles = StyleSheet.create({
     container: {
-        padding: 20,
+        marginHorizontal: 10,
+        padding: 10,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#FFFFFF',
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
         color: '#333'
     },
     score: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#007BFF'
     }

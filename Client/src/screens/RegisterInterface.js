@@ -1,14 +1,14 @@
 // src/screens/RegisterInterface.js
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, ActivityIndicator, Modal, ScrollView, Text, TouchableOpacity  } from 'react-native';
+import { View, TextInput, StyleSheet, ActivityIndicator, Modal, ScrollView, Text, TouchableOpacity  } from 'react-native';
 import CheckBox from '@react-native-community/checkbox'; 
-import BaseInterface from './BaseInterface';
+import BaseConInterface from './BaseConInterface';
 import { UsernameInput, PasswordInput } from '../components/RuleTextInput';
 import EmailInput from '../components/EmailInput';
-import TransferLayer from '../utils/TransferLayer';
 import { resetNavigator } from '../utils/ResetNavigator';
+import { MyButton, SingleButton } from '../components/MyButton';
 
-class RegisterInterface extends BaseInterface {
+class RegisterInterface extends  BaseConInterface{
     constructor(props) {
         super(props);
         this.state = {
@@ -24,13 +24,21 @@ class RegisterInterface extends BaseInterface {
             acceptTerms: false,
             isLoading: false,
             isCodeSent: false,
-            modalVisible: false
+            modalVisible: false,
+            loading: true
         };
+    }
+
+    componentDidMount() {
+        this.establishConnection();
+        this.setState({ loading: false });
     }
 
     sendVerificationCode = () => {
         const email = this.state.emailName + '@' + this.state.emailDomain;
         this.setState({ email: email });
+        this.setState({ isCodeSent: true });
+        return;
         if (email) {
             this.setState({ isLoading: true });
             this.transferLayer.sendRequest({
@@ -46,7 +54,6 @@ class RegisterInterface extends BaseInterface {
     };
 
     handleVerificationResponse = (response) => {
-        if(!this.checkResponse("sendVerification", response.preserved)) return;
         this.setState({ isLoading: false });
         if (response.success) {
             this.setState({ isCodeSent: true });
@@ -79,11 +86,12 @@ class RegisterInterface extends BaseInterface {
     };
 
     handleRegisterResponse = (response) => {
-        if(!this.checkResponse("register", response.preserved)) return;
         this.setState({ isLoading: false });
         if (response.success) {
+            gUsername = this.state.username;
+            gPassword = this.state.password;
             this.displaySuccessMessage("Registration successful");
-            resetNavigator(this.props.navigation, 'Home');
+            resetNavigator(this.props.navigation, 'PersonalSettings');
         } else {
             this.displayErrorMessage("Registration failed. " + response.message);
         }
@@ -131,9 +139,9 @@ class RegisterInterface extends BaseInterface {
     };
 
     render() {
-        if(this.loading)
+        const { isLoading, isCodeSent, acceptTerms, emailName, emailDomain, loading } = this.state;
+        if(loading)
             return super.render();
-        const { isLoading, isCodeSent, acceptTerms, emailName, emailDomain } = this.state;
         return (
             <View style={styles.container}>
                 {this.renderModal()}                
@@ -179,15 +187,11 @@ class RegisterInterface extends BaseInterface {
                                 <Text style={styles.viewTerms}>View Terms</Text>
                             </TouchableOpacity>
                         </View>
-                        <Button
-                            title="Register"
-                            onPress={this.handleRegister}
-                            disabled={isLoading || !acceptTerms || !this.state.usernameValid || !this.state.passwordValid}
-                        />
+                        <SingleButton title="Register" onPress={this.handleRegister} disabled={isLoading || !acceptTerms || !this.state.passwordValid || !this.state.usernameValid} />
                     </>
                 )}
                 {!isCodeSent && (
-                    <Button title="Send Verification Code" onPress={this.sendVerificationCode} disabled={isLoading} />
+                    <MyButton title="Send Verification Code" onPress={this.sendVerificationCode} disabled={isLoading} />
                 )}
                 {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
             </View>

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet, Button, FlatList, Image, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
 import TransferLayer from '../utils/TransferLayer';
 import BaseInterface from './BaseInterface';
-import DefaultUserIcon from './src/assets/default_user_icon.png';
+import DefaultUserIcon from '../assets/default_user_icon.png';
 
 class ChatInterface extends BaseInterface {
     constructor(props) {
@@ -33,8 +33,6 @@ class ChatInterface extends BaseInterface {
     handleInitialMessagesResponse = (response) => {
         if (response.success) {
             this.setState({ userIcon: response.data.userIcon, responseIcon: response.data.responseIcon });
-            if(this.state.userIcon === null) this.setState({ userIcon: DefaultUserIcon });
-            if(this.state.responseIcon === null) this.setState({ responseIcon: DefaultUserIcon });
         } else {
             this.displayErrorMessage("Failed to fetch initial messages.");
         }
@@ -83,12 +81,15 @@ class ChatInterface extends BaseInterface {
 
     renderMessageItem = ({ item }) => {
         const isUser = item.type === 'user';
+        let icon = isUser ? this.userIcon : this.responseIcon;
+        if(icon === null) icon = DefaultUserIcon;
+        else icon = { uri: icon };
         return (
             <View style={[
                 styles.messageContainer,
                 isUser ? styles.userMessage : styles.responseMessage
             ]}>
-                <Image source={{ uri: isUser ? this.userIcon : this.responseIcon }} style={styles.avatar} />
+                <Image source={icon} style={styles.avatar} />
                 <Text style={styles.messageText}>{item.text}</Text>
             </View>
         );

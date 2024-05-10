@@ -15,7 +15,8 @@ class LoanInterface extends BaseInterface {
 
     componentDidMount() {
         this.establishConnection();
-        if (!this.loading) {
+        if (!this.state.loading) {
+            this.setState({ loading: true });
             this.fetchLoanProducts();
         }
     }

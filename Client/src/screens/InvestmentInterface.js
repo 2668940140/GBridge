@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
 import { View, Text, TextInput, Button, Picker, StyleSheet, ScrollView } from 'react-native';
-import TransferLayer from '../utils/TransferLayer';
-import BaseInterface from './BaseInterface';
+import BaseConInterface from './BaseConInterface';
 
-class InvestmentInterface extends BaseInterface {
+class InvestmentInterface extends BaseConInterface {
     constructor(props) {
         super(props);
         this.state = {

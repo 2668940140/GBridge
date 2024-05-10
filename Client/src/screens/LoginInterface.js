@@ -1,13 +1,15 @@
 // src/screens/LoginInterface.js
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
-import BaseInterface from './BaseInterface'; 
-import TransferLayer from '../utils/TransferLayer';  
+import { View, Text, TextInput, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
+import BaseConInterface from './BaseConInterface';  
 import { resetNavigator } from '../utils/ResetNavigator';
 import EmailInput from '../components/EmailInput';
 import VerificationCodeInput from '../components/VerificationCodeInput';
+import { SingleButton } from '../components/MyButton';
+import { AsynLoad, AsynSave } from '../utils/AsynSL';
+import CheckBox from '@react-native-community/checkbox';
 
-class LoginInterface extends BaseInterface {
+class LoginInterface extends BaseConInterface {
     constructor(props) {
         super(props);
         this.state = {
@@ -20,8 +22,24 @@ class LoginInterface extends BaseInterface {
             password: '',
             verificationCode: '',
             isLoading: false,
-            isCodeSent: false
+            isCodeSent: false,
+            loading: true,
+            saveAccount: 'false'
         };
+    }
+
+    componentDidMount() {
+        this.transferLayer.connect().then(async () => {
+            const saveAccount = await AsynLoad('saveAccount');
+            if(saveAccount === 'true') {
+                const username = await AsynLoad('username');
+                const password = await AsynLoad('password');
+                this.setState({ username: username, password: password });
+            }
+            this.setState({ loading: false, saveAccount: saveAccount});
+        }).catch((error) => {
+            this.displayErrorMessage("Failed to connect to server. Please try again later.");
+        });
     }
 
     switchTab = (tab) => {
@@ -66,11 +84,17 @@ class LoginInterface extends BaseInterface {
         }
     };
     
-    handleServerResponse = (response) => {
-        if(!this.checkResponse("login", response.preserved))
-            return;
+    handleServerResponse = async (response) => {
         this.setState({ isLoading: false });  // Stop loading when response is received
         if (response.success) {
+            gUsername = this.state.username;
+            gPassword = this.state.password;
+            gSaveAccount = this.state.saveAccount;
+            await AsynSave('saveAccount', gSaveAccount);
+            if(gSaveAccount === 'true') {
+                await AsynSave('username', gUsername);
+                await AsynSave('password', gPassword);
+            }
             this.displaySuccessMessage("Login Successful");
             resetNavigator(this.props.navigation, 'Home');  // Navigate to Home screen
         } else {
@@ -103,8 +127,6 @@ class LoginInterface extends BaseInterface {
     };
 
     handleVerificationResponse = (response) => {
-        if(!this.checkResponse("sendVerification", response.preserved))
-            return;
         this.setState({ isLoading: false });
         if (response.success) {
             this.setState({ isCodeSent: true });
@@ -114,10 +136,14 @@ class LoginInterface extends BaseInterface {
         }
     };
 
+    toggleCheckBox = () => {
+        this.setState({ saveAccount: this.state.saveAccount === 'true' ? 'false' : 'true'});
+    }
+
     render() {
-        if(this.loading)
+        const { activeTab, activeVerification, username, password, emailName, emailDomain, loading, saveAccount } = this.state;
+        if(loading)
             return super.render();
-        const { activeTab, activeVerification, username, password, emailName, emailDomain } = this.state;
         return (
             <View style={styles.container}>
                 <View style={styles.tabContainer}>
@@ -179,12 +205,18 @@ class LoginInterface extends BaseInterface {
                 </TouchableOpacity>  
                 </>
                 )}
-
-                <Button
+                <View style={styles.checkboxContainer}>
+                    <CheckBox
+                        value={saveAccount === 'true'}
+                        onValueChange={this.toggleCheckBox}
+                        style={styles.checkbox}
+                    />
+                    <Text style={styles.label}>save account</Text>
+                </View>
+                <SingleButton
                     title="Login"
                     onPress={this.initiateLogin}
-                    disabled={this.state.isLoading}  // Disable button when loading
-                />
+                    disabled={this.state.isLoading} />
                 {this.state.isLoading && (
                 <ActivityIndicator size="large" color="#0000ff" />
                 )}
@@ -224,7 +256,17 @@ const styles = StyleSheet.create({
     switchText: {
         color: 'blue',
         marginBottom: 10
-    }
+    },
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    checkbox: {
+        marginHorizontal: 8,
+    },
+    label: {
+        marginVertical: 8,
+    },
 });
 
 export default LoginInterface;

@@ -1,11 +1,20 @@
 // src/config/config.json
 {
     "server": {
-        "ip": "10.0.2.2",
+        "use_REAL": true,
+        "ip_EUM": "10.0.2.2",
+        "ip_REAL": "192.168.137.1",
         "port": 29175
     },
     "connection": {
         "maxRetries": 5,
         "retryDelay": 1000
+    },
+    "userIcon":{
+        "width": 64,
+        "height": 64,
+        "compressImageMaxWidth" : 64,
+        "compressImageMaxHeight" : 64,
+        "compressImageQuality" : 0.8
     }
 }

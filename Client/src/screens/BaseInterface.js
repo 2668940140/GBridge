@@ -1,32 +1,8 @@
 // screens/BaseInterface.js
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import TransferLayer from '../utils/TransferLayer';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 
 export default class BaseInterface extends React.Component {
-    constructor(props) {
-        super(props);
-        this.loading = true;
-        this.transferLayer = new TransferLayer();
-    }
-
-    componentWillUnmount() {
-        this.transferLayer.closeConnection();
-    }
-
-    componentDidMount() {
-        this.establishConnection();
-        this.loading = false;
-    }
-
-    establishConnection() {
-        this.transferLayer.connect()
-        .then(() => {
-            console.log("Connection successfully established.");
-            this.loading = false;
-        })
-        .catch(error => console.error("Failed to connect:", error));
-    }
 
     render() {
         return  (
@@ -47,10 +23,10 @@ export default class BaseInterface extends React.Component {
 
     // More common methods can be added here
     checkResponse(expected, received) {
-        if(response.preserved !== "login")
+        if(expected !== received)
         {
             console.log("Preserved request not matched");
-            console.log("expected: login, get " + response.preserved + " instead");
+            console.log("expected: "+ expected+", get " + received + " instead");
             return false;
         }
         return true;

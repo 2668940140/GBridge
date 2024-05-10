@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import TransferLayer from '../utils/TransferLayer';
-import BaseComponent from './BaseComponent';
-import DefaultUserIcon from './src/assets/default_user_icon.png';
+import BaseConComponent from './BaseConComponent';
+import DefaultUserIcon from '../assets/default_user_icon.png';
 
-class ProfileBoard extends BaseComponent{
+class ProfileBoard extends BaseConComponent{
     constructor(props) {
         super(props);
         this.state = {
@@ -13,36 +12,36 @@ class ProfileBoard extends BaseComponent{
             userIcon: null,
             loading: true
         };
-        this.transferLayer = new TransferLayer();
     }
 
     componentDidMount() {
-        this.transferLayer.connect().then(() => {
-            this.transferLayer.sendRequest({
-                type: "getUserData",
-                content: {},
-                extra: null
-            }, this.handleProfileResponse);
-        }).catch(error => {
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
-            this.setState({ loading: false });
-        });
-    }
-    componentWillUnmount() {
-        this.transferLayer.closeConnection();
+        this.establishConnection().then(() => {
+            this.establishConnectionSuccess();
+            username = gUsername;
+        this.setState({ username: username , loading: true});
+        this.transferLayer.sendRequest({
+            type: "get_user_info",
+            content: [
+                "portrait",
+            ],
+            extra: null
+        }, this.handleProfileResponse);
+    }).catch(() => {
+        this.establishConnectionFailure();
+    });        
     }
 
     handleProfileResponse = (response) => {
+        if(response.type !== "get_user_info") return;
         if (response.success) {
             this.setState({
-                username: response.username,
-                verified: response.verified,
-                userIcon: response.userIcon,
+                verified: false,
+                userIcon: response.content.portrait,
                 loading: false
             });
         } else {
             this.displayErrorMessage("Failed to retrieve user data.");
-            this.setState({ loading: false });
+            // this.setState({ loading: false });
         }
     }
 
@@ -54,7 +53,7 @@ class ProfileBoard extends BaseComponent{
         }
         return (
             <TouchableOpacity style={styles.container} onPress={() => navigation.navigate(targetScreen)}>
-                <Image source={{ uri: userIcon || DefaultUserIcon }} style={styles.icon} />
+                <Image source={userIcon ? { uri: userIcon } : DefaultUserIcon} style={styles.icon} />
                 <View style={styles.infoContainer}>
                     <Text style={styles.username}>{username}</Text>
                     <Text style={styles.status}>{verified ? 'Verified' : 'Not Verified'}</Text>
@@ -67,9 +66,17 @@ class ProfileBoard extends BaseComponent{
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
+        marginHorizontal: 10,
         padding: 10,
         alignItems: 'center',
-        backgroundColor: '#FFFFFF', // Optional for better UI
+        justifyContent: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 4
     },
     icon: {
         width: 50,
@@ -82,7 +89,7 @@ const styles = StyleSheet.create({
     },
     username: {
         fontWeight: 'bold',
-        fontSize: 16
+        fontSize: 18
     },
     status: {
         color: 'grey',

@@ -1,13 +1,12 @@
 // src/screens/VerificationInterface.js
 import React from 'react';
-import { View, TextInput, Button, StyleSheet, Image, TouchableOpacity, Text, Alert } from 'react-native';
-import BaseInterface from '../components/BaseComponent';
-import TransferLayer from '../utils/TransferLayer';
-import { AsynLoad, AsynRemove, AsynSave } from '../utils/AsynSL';
+import { View, TextInput, StyleSheet, Image, TouchableOpacity, Text, Alert } from 'react-native';
+import BaseConInterface from './BaseConInterface';
 import { resetNavigator } from '../utils/ResetNavigator';
-import ImagePicker from 'react-native-image-picker';
+import { pickImage } from '../utils/ImagePicker';
+import { SingleButton } from '../components/MyButton';
 
-class VerificationInterface extends BaseInterface {
+class VerificationInterface extends BaseConInterface {
     constructor(props) {
         super(props);
         this.state = {
@@ -15,37 +14,20 @@ class VerificationInterface extends BaseInterface {
             idNumber: '',
             frontPhoto: null,
             backPhoto: null,
-            verificationStatus: ''
+            verificationStatus: '',
+            loading: true,
         };
     }
 
-    pickImage = (side) => {
-        const options = {
-            title: 'Select ID Photo',
-            storageOptions: {
-                skipBackup: true,
-                path: 'images',
-            },
-            mediaType: 'photo',
-            quality: 1,
-            includeBase64: true,
-        };
-
-        ImagePicker.showImagePicker(options, (response) => {
-            if (response.didCancel) {
-                console.log('User cancelled image picker');
-            } else if (response.error) {
-                console.log('ImagePicker Error: ', response.error);
+    pickIDPhoto = (type) => {
+        pickImage((base64) => {
+            if (type === 'front') {
+                this.setState({ frontPhoto: base64 });
             } else {
-                const source = { uri: response.uri };
-                if (side === 'front') {
-                    this.setState({ frontPhoto: response.data });  // Store base64 encoded image
-                } else {
-                    this.setState({ backPhoto: response.data });  // Store base64 encoded image
-                }
+                this.setState({ backPhoto: base64 });
             }
-        });
-    };
+        }, 'Select ID Photo: '+type);
+    }
 
     uploadIDDocuments = () => {
         const { realName, idNumber, frontPhoto, backPhoto } = this.state;
@@ -79,10 +61,12 @@ class VerificationInterface extends BaseInterface {
     };
 
     handleBackPress = () => {
-        resetNavigator(this.props.navigation, 'HomeScreen');
+        this.props.navigation.goBack();
     };
 
     render() {
+        if(this.state.loading)
+            return super.render();
         return (
             <View style={styles.container}>
                 <TextInput
@@ -95,19 +79,20 @@ class VerificationInterface extends BaseInterface {
                     style={styles.input}
                     placeholder="Enter your ID number"
                     value={this.state.idNumber}
+                    keyboardType='numeric'
                     onChangeText={text => this.setState({ idNumber: text })}
                 />
-                <TouchableOpacity style={styles.button} onPress={() => this.pickImage('front')}>
+                <TouchableOpacity style={styles.button} onPress={() => this.pickIDPhoto('front')}>
                     <Text>Upload Front ID Photo</Text>
-                    {this.state.frontPhoto && <Image source={{ uri: `data:image/jpeg;base64,${this.state.frontPhoto}` }} style={styles.image} />}
+                    {this.state.frontPhoto && <Image source={{ uri: this.state.frontPhoto }} style={styles.image} />}
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.button} onPress={() => this.pickImage('back')}>
+                <TouchableOpacity style={styles.button} onPress={() => this.pickIDPhoto('back')}>
                     <Text>Upload Back ID Photo</Text>
-                    {this.state.backPhoto && <Image source={{ uri: `data:image/jpeg;base64,${this.state.backPhoto}` }} style={styles.image} />}
+                    {this.state.backPhoto && <Image source={{ uri: this.state.backPhoto }} style={styles.image} />}
                 </TouchableOpacity>
-                <Button title="Submit for Verification" onPress={this.uploadIDDocuments} />
+                <SingleButton title="Submit" onPress={this.uploadIDDocuments} />
                 <Text>{this.state.verificationStatus}</Text>
-                <Button title="Back to Home" onPress={this.handleBackPress} />
+                <SingleButton title="Back" onPress={this.handleBackPress} />
             </View>
         );
     }
@@ -134,7 +119,7 @@ const styles = StyleSheet.create({
     image: {
         width: 100,
         height: 100,
-        marginTop: 10,
+        marginVertical: 5,
     }
 });
 
