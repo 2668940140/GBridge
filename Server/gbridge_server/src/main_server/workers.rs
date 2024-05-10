@@ -508,10 +508,8 @@ impl main_server::MainServer
       "username": session.lock().await.username.clone()
     };
     let update = doc! {
-      "$set": {
-      "content": content.clone(),
-      "time": chrono::Utc::now().to_rfc3339(),
-      }
+      "$set": 
+      entry
     };
 
     let response = db.users_bot_evaluation.update_one(query, update, None).await;
