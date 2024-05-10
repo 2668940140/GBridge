@@ -6,7 +6,7 @@ use crate::main_server;
 use crate::main_server::data_structure::Json;
 use chrono::{FixedOffset, Utc};
 use futures::StreamExt;
-use mongodb::bson::{self, doc, DateTime};
+use mongodb::bson::{self, doc, DateTime, Document};
 use mongodb::Database;
 use serde_json::json;
 use tokio::io::AsyncWriteExt;
@@ -315,8 +315,22 @@ impl main_server::MainServer
   pub async fn get_market_posts_worker(request : &Json, db : Arc<Db>) -> Result<Json,()>
   {
     let preserved = request.get("preserved");
-  
-    let cursor = db.public_market.find(doc! {}, None).await;
+    let content = request.get("content").and_then(|f| f.as_str());
+    let mut filter = doc! {};
+    if content.is_some()
+    {
+      let content = content.unwrap();
+      let content_bytes = content.as_bytes();
+      let mut content_reader = std::io::Cursor::new(content_bytes);
+      let content = bson::Document::from_reader(&mut content_reader);
+      if content.is_err()
+      {
+        return Err(());
+      }
+      filter = content.unwrap();
+    }
+
+    let cursor = db.public_market.find(filter, None).await;
     if cursor.is_err() {
       return Err(());
     }
@@ -464,32 +478,13 @@ impl main_server::MainServer
       }
     }
 
-    session.lock().await.retrive_from_db(&FINANCIAL_FILEDS).await;
-    let mut string_info = String::new(); 
-    if session.lock().await.cash.is_some() {
-      string_info.push_str(&format!("cash: ${}, ", session.lock().await.cash.unwrap()));
-    }
-    if session.lock().await.income.is_some() {
-      string_info.push_str(&format!("income: ${}/month, ", session.lock().await.income.unwrap()));
-    }
-    if session.lock().await.expenditure.is_some() {
-      string_info.push_str(&format!("expenditure: ${}/month, ", session.lock().await.expenditure.unwrap()));
-    }
-    if session.lock().await.debt.is_some() {
-      string_info.push_str(&format!("debt: ${}, ", session.lock().await.debt.unwrap()));
-    }
-    if session.lock().await.assets.is_some() {
-      string_info.push_str(&format!("assets: ${}, ", session.lock().await.assets.unwrap()));
-    }
-    if string_info.len() == 0
-    {
-      string_info.push_str("no financial information");
-    }
+    let financial_summary = 
+    session.lock().await.get_financial_summary().await;
 
 
     let prompt = format!("Now you are a professional advisor, please give some advice to the user {},
     who has the following financial status: {}.",
-    session.lock().await.username, string_info
+    session.lock().await.username, financial_summary
     );
 
     let response = bot.send_message(prompt).await;
@@ -508,10 +503,8 @@ impl main_server::MainServer
       "username": session.lock().await.username.clone()
     };
     let update = doc! {
-      "$set": {
-      "content": content.clone(),
-      "time": chrono::Utc::now().to_rfc3339(),
-      }
+      "$set": 
+      entry
     };
 
     let response = db.users_bot_evaluation.update_one(query, update, None).await;
@@ -547,6 +540,31 @@ impl main_server::MainServer
       "preserved": preserved,
       "content": response
     }));
+  }
+
+  pub async fn get_bot_conversation_worker(request : &Json, session : Arc<Mutex<Session>>,
+    db : Arc<Db>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let username = session.lock().await.username.clone();
+    let response = db.users_bot_conversation.find_one(
+      doc! {
+        "username": username
+      }, None).await;
+    if response.is_err() {
+      return Err(());
+    }
+    let response = response.unwrap();
+    if response.is_none() {
+      return Ok(json!({
+        "type": "get_bot_conversation",
+        "status": 200,
+        "preserved": preserved,
+        "content": json!([])
+      }));
+    }
+    Err(())
   }
 
   pub async fn get_adviser_conversation_worker(request : &Json, session : Arc<Mutex<Session>>)
@@ -668,6 +686,113 @@ impl main_server::MainServer
     }
     return Ok(json!({
       "type": "get_user_posts",
+      "status": 200,
+      "preserved": preserved,
+      "content": content
+    }));
+  }
+
+  pub async fn complete_deal_worker(request : &Json, db : Arc<Db>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content");
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+    let _id = content.get("_id").and_then(|i| i.as_str());
+    if _id.is_none() {
+      return Err(());
+    }
+    let _id = _id.unwrap();
+    let doc = db.public_deals.find_one(doc! {
+      "_id": bson::oid::ObjectId::parse_str(_id).unwrap()
+    }, None).await;
+    if doc.is_err() {
+      return Err(());
+    }
+    let doc = doc.unwrap();
+    if doc.is_none() {
+      return Err(());
+    }
+    db.public_history_deals.insert_one(doc.unwrap(), None).await.unwrap();
+    let response = db.public_deals.delete_one(doc! {
+      "_id": bson::oid::ObjectId::parse_str(_id).unwrap()
+    }, None).await;
+    if response.is_err() {
+      return Err(());
+    }
+    return Ok(json!({
+      "type": "complete_deal",
+      "status": 200,
+      "preserved": preserved
+    }));
+  }
+
+  pub async fn send_notification_worker(request : &Json, session : Arc<Mutex<Session>>,
+  db : Arc<Db>)
+  ->Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content");
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+    let receiver = content.get("receiver").and_then(|r| r.as_str());
+    if receiver.is_none() {
+      return Err(());
+    }
+    let receiver = receiver.unwrap();
+    let content = content.get("content");
+    let content_bson = content.clone().map(|c| bson::to_bson(c).unwrap());
+    
+    if content.is_none() {
+      return Err(());
+    }
+    let mail = doc!
+    {
+      "sender": session.lock().await.username.clone(),
+      "receiver": receiver,
+      "content": content_bson,
+      "time": chrono::Utc::now().to_rfc3339()
+    };
+    db.users_notification.insert_one(mail, None).await.unwrap();
+    return Ok(json!({
+      "type": "send_notification",
+      "status": 200,
+      "preserved": preserved
+    }));
+  }
+
+  pub async fn get_notification_worker(request : &Json, session : Arc<Mutex<Session>>,
+  db : Arc<Db>)->Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let username = session.lock().await.username.clone();
+    let cursor = db.users_notification.find(doc! {
+      "$or": [
+        {"sender": username.clone()},
+        {"receiver": username.clone()}
+      ]
+    }, None).await;
+    if cursor.is_err() {
+      return Err(());
+    }
+    let mut cursor = cursor.unwrap();
+    let mut content = json!([]);
+    while let Some(result) = cursor.next().await {
+      match result {
+        Ok(doc) => {
+          let doc = bson::to_bson(&doc).unwrap(); // Convert bson to json
+          content.as_array_mut().unwrap().push(doc.into());
+        }
+        Err(e) => return Err(()),
+      }
+    }
+    return Ok(json!({
+      "type": "get_notification",
       "status": 200,
       "preserved": preserved,
       "content": content

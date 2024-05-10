@@ -14,6 +14,7 @@ import RepaymentInterface from './screens/RepaymentInterface';
 import ScoreInterface from './screens/ScoreInterface';
 import VerificationInterface from './screens/VerificationInterface';
 import PersonalInfo from './screens/PersonalInfo';
+import ChatInterface from './screens/ChatInterface';
 import { AsynRemove } from './utils/AsynSL';
 import { resetNavigator } from './utils/ResetNavigator';
 import { LogoutButton } from './components/MyButton';
@@ -104,7 +105,8 @@ const clearAuthenticationData = async () => {
         <Stack.Screen name="Repayment" component={RepaymentInterface} />
         <Stack.Screen name="Score" component={ScoreInterface} />
         <Stack.Screen name="Verification" component={VerificationInterface} />
-        <Stack.Screen name="PersonalInfo" component={PersonalInfo} />        
+        <Stack.Screen name="PersonalInfo" component={PersonalInfo} />      
+        <Stack.Screen name="ChatInterface" component={ChatInterface} />  
       </Stack.Navigator>
     </NavigationContainer>
   );

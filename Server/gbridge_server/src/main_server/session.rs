@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, vec};
+use std::{collections::HashMap, io::SeekFrom, string, sync::Arc, vec};
 use chrono::{DateTime, Utc};
 use serde_json::json;
 use crate::main_server::database::Db;
@@ -98,8 +98,8 @@ impl Sessions
       self.sessions.remove(username.as_str());
     }
   }
-    
 }
+
 
 impl Session {
   pub fn new(username: String, db : Arc<Db>) -> Self
@@ -138,14 +138,27 @@ impl Session {
     let path = file.path().to_str().unwrap().to_string();
     conversation.save_history_json(path.clone()).await.unwrap();
     let content = std::fs::read_to_string(path).unwrap();
-    self.db.users_bot_conversation.update_one(doc! {
+    
+    let existing_doc = self.db.users_bot_conversation.find_one(doc! {
       "username": &self.username
-    }, doc! {
-      "$set": {
+    }, None).await.unwrap();
+
+    if existing_doc.is_some() {
+      self.db.users_bot_conversation.update_one(doc! {
+        "username": &self.username
+      }, doc! {
+        "$set": {
+          "content": content,
+          "time": Utc::now().to_rfc3339()
+        }
+      }, None).await.unwrap();
+    } else {
+      self.db.users_bot_conversation.insert_one(doc! {
+        "username": &self.username,
         "content": content,
         "time": Utc::now().to_rfc3339()
-      }
-    }, None).await.unwrap();
+      }, None).await.unwrap();
+    }
   }
 
   pub async fn retrieve_adviser_conversation(&mut self)
@@ -175,14 +188,26 @@ impl Session {
     }
     let conversation = self.adviser_conversation.as_ref().unwrap();
     let content = serde_json::to_string(conversation).unwrap();
-    self.db.users_adviser_conversation.update_one(doc! {
+    let existing_doc = self.db.users_adviser_conversation.find_one(doc! {
       "username": &self.username
-    }, doc! {
-      "$set": {
+    }, None).await.unwrap();
+
+    if existing_doc.is_some() {
+      self.db.users_adviser_conversation.update_one(doc! {
+        "username": &self.username
+      }, doc! {
+        "$set": {
+          "content": content,
+          "time": Utc::now().to_rfc3339()
+        }
+      }, None).await.unwrap();
+    } else {
+      self.db.users_adviser_conversation.insert_one(doc! {
+        "username": &self.username,
         "content": content,
         "time": Utc::now().to_rfc3339()
-      }
-    }, None).await.unwrap();
+      }, None).await.unwrap();
+    }
   }
 
   pub async fn append_adviser_conversation(&mut self, 
@@ -242,8 +267,12 @@ impl Session {
       self.username)).await.unwrap();
       self.bot_conversation = Some(conversation);
     }
+    let merged_msg = format!("System: {}\nUser: {}", 
+    self.get_financial_summary().await, message);
+
     let conversation = self.bot_conversation.as_mut().unwrap();
-    let response = conversation.send_message(message).await
+    
+    let response = conversation.send_message(merged_msg).await
     .unwrap();
     response.message().content.clone()
   }
@@ -381,15 +410,14 @@ impl Session {
     if self.debt.is_some() && self.assets.is_some(){
       score = score * (self.assets.unwrap() + 500.0) / (self.debt.unwrap() + 500.0);
     }
-
+    
+    if self.cash.is_some() && self.assets.is_some(){
+      score = score *  f64::min(f64::max(
+        (self.cash.unwrap() * 10.0 + 500.0) / (self.assets.unwrap() + 500.0)
+        , 0.5),1.2);
+    }
     if self.debt.is_some() && self.cash.is_some(){
       score = score * (self.cash.unwrap() + 500.0) / (self.debt.unwrap() + 500.0);
-    }
-    if score > 1.0 {
-      score = 1.0;
-    }
-    if score < 0.0 {
-      score = 0.0;
     }
     score = f64::max(f64::min(score, 1.0), 0.0);
     score
@@ -404,6 +432,32 @@ impl Session {
   {
     self.last_active_time
   }
+
+  pub async fn get_financial_summary(&mut self) -> String
+  {
+    self.retrive_from_db(&FINANCIAL_FILEDS).await;
+    let mut string_info = format!("User {} financial summary: ", self.username); 
+    if self.cash.is_some() {
+      string_info.push_str(&format!("cash: ${}, ", self.cash.unwrap()));
+    }
+    if self.income.is_some() {
+      string_info.push_str(&format!("income: ${}/month, ", self.income.unwrap()));
+    }
+    if self.expenditure.is_some() {
+      string_info.push_str(&format!("expenditure: ${}/month, ", self.expenditure.unwrap()));
+    }
+    if self.debt.is_some() {
+      string_info.push_str(&format!("debt: ${}, ", self.debt.unwrap()));
+    }
+    if self.assets.is_some() {
+      string_info.push_str(&format!("assets: ${}, ", self.assets.unwrap()));
+    }
+    if string_info.len() == 0
+    {
+      string_info.push_str("no financial information");
+    }
+    return string_info;
+}
 
   pub async fn get_last_update_time(&self, db: Arc<Db>)
   -> DateTime<Utc>
