@@ -351,6 +351,7 @@ impl MainServer {
             
             let response = serde_json::to_string(&response).unwrap();
             stream.write_all(response.as_bytes()).await.unwrap();
+            println!("Ok Response sent");
             ok = true;
           }
         }
@@ -363,6 +364,7 @@ impl MainServer {
         });
         let response = serde_json::to_string(&response).unwrap();
         stream.write_all(response.as_bytes()).await.unwrap();
+        println!("Error Response sent");
       }
     }
 

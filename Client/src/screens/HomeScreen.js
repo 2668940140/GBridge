@@ -1,11 +1,15 @@
 import React from 'react';
-import { ScrollView, Text, View, StyleSheet } from 'react-native';
+import {Button, Text, View, StyleSheet } from 'react-native';
 import ProfileBoard from '../components/ProfileBoard';
 import LoanRepaymentList from '../components/LoanRepaymentList';
 import ScoreBoard from '../components/ScoreBoard';
 import MarketComponent from '../components/MarketComponent';
 
 const HomeScreen = ({ navigation }) => {
+    const handleChatButtonPress = () => {
+        navigation.navigate('ChatInterface');
+    };
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Welcome to JinQiaoTong!</Text>
@@ -15,6 +19,7 @@ const HomeScreen = ({ navigation }) => {
             </View>
             <LoanRepaymentList navigation={navigation} />
             <MarketComponent navigation={navigation} />
+            <Button title="Chat" onPress={handleChatButtonPress} />
         </View>
     );
 };

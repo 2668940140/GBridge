@@ -533,8 +533,7 @@ impl main_server::MainServer
     }
     let msg = content.unwrap();
     let response = 
-    session.lock().await.speak_to_bot(bot.clone(), msg.to_string(),
-    session.clone()).await;
+    session.lock().await.speak_to_bot(bot.clone(), msg.to_string()).await;
     return Ok(json!({
       "type": "send_message_to_bot",
       "status": 200,

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, string, sync::Arc, vec};
+use std::{collections::HashMap, io::SeekFrom, string, sync::Arc, vec};
 use chrono::{DateTime, Utc};
 use serde_json::json;
 use crate::main_server::database::Db;
@@ -253,7 +253,7 @@ impl Session {
   }
 
   pub async fn speak_to_bot(&mut self, bot: Arc<ChatGPT>, 
-    message: String, session: Arc<Mutex<Session>>)
+    message: String)
   -> String
   {
     if self.bot_conversation.is_none() {
@@ -267,9 +267,10 @@ impl Session {
       self.username)).await.unwrap();
       self.bot_conversation = Some(conversation);
     }
-    let conversation = self.bot_conversation.as_mut().unwrap();
     let merged_msg = format!("System: {}\nUser: {}", 
-    session.lock().await.get_financial_summary().await, message);
+    self.get_financial_summary().await, message);
+
+    let conversation = self.bot_conversation.as_mut().unwrap();
     
     let response = conversation.send_message(merged_msg).await
     .unwrap();

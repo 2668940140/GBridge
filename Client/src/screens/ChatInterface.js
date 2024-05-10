@@ -1,175 +1,118 @@
-import React from 'react';
-import { View, Text, TextInput, StyleSheet, Button, FlatList, Image, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
-import TransferLayer from '../utils/TransferLayer';
-import BaseInterface from './BaseInterface';
+import React, { Component } from 'react';
+import { View, Text, TextInput, StyleSheet, Button, FlatList, Image, KeyboardAvoidingView, ScrollView } from 'react-native';
+import BaseConInterface from './BaseConInterface';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 
-class ChatInterface extends BaseInterface {
+class ChatInterface extends BaseConInterface {
     constructor(props) {
         super(props);
         this.state = {
-            userIcon: null,
-            responseIcon: null,
-            messages: [],
-            userInput: '',
-            loading: true
+            messages: [
+                { id: 1, text: 'Hello', time: '10:00', userIcon: DefaultUserIcon },
+                { id: 2, text: 'Hi', time: '10:01', userIcon: DefaultUserIcon },
+            ],
+            inputText: '',
         };
     }
 
-    componentDidMount() {
-        this.establishConnection();
-        if(!this.state.loading)
-            this.fetchinitialMessages();
-    }
-
-    fetchinitialMessages = () => {
-        this.transferLayer.sendRequest({
-            type: "getChatIcons",
-            content:{},
-            extra: null
-        }, this.handleInitialMessagesResponse);
-    };
-
-    handleInitialMessagesResponse = (response) => {
-        if (response.success) {
-            this.setState({ userIcon: response.data.userIcon, responseIcon: response.data.responseIcon });
-        } else {
-            this.displayErrorMessage("Failed to fetch initial messages.");
+    sendMessage = () => {
+        const { inputText } = this.state;
+    
+        if (!inputText) {
+            return;
         }
-        this.setState({ loading: false });
+    
+        const message = {
+            type: 'send_message_to_bot',
+            content: inputText,
+            preserved: null, // Add any preserved data if needed
+        };
+    
+        console.log("send request");
+        this.transferLayer.sendRequest(message, this.handleSendMessageResponse);
+    
+        // Add the new message to the state
+        this.setState(prevState => ({
+            messages: [...prevState.messages, { id: Date.now(), text: inputText, time: new Date().toLocaleTimeString(), userIcon: DefaultUserIcon }],
+            inputText: '', // Clear the input box
+        }));
     };
     
-    sendMessage = () => {
-        const { userInput } = this.state;
-        if (!userInput.trim()) return;
-        
-        const newMessage = {
+    handleSendMessageResponse = (response) => {
+        if (response.status !== 200) {
+            console.error('Failed to send message:', response.error);
+            return;
+        }
+    
+        // Handle the response from the bot
+        const botMessage = {
             id: Date.now(),
-            text: userInput,
-            type: 'user'
+            text: response.content,
+            time: new Date().toLocaleTimeString(),
+            userIcon: DefaultUserIcon, // Replace with the bot's icon if available
         };
-        
+    
+        // Add the bot's message to the state
+        this.setState(prevState => ({
+            messages: [...prevState.messages, botMessage],
+        }));
+    };
+
+
+    renderMessageItem = ({ item }) => (
+        <View style={styles.messageItem}>
+            <Image source={item.userIcon} style={styles.userIcon} />
+            <View style={styles.messageContent}>
+                <Text style={styles.messageText}>{item.text}</Text>
+                <Text style={styles.messageTime}>{item.time}</Text>
+            </View>
+        </View>
+    );
+
+    handleSend = () => {
+        // Add logic to send the message
+        const { inputText, messages } = this.state;
+        const newMessage = {
+            id: messages.length + 1,
+            text: inputText,
+            time: new Date().toLocaleTimeString(),
+            userIcon: DefaultUserIcon,
+        };
         this.setState(prevState => ({
             messages: [...prevState.messages, newMessage],
-            userInput: '',
-            loading: true
+            inputText: '',
         }));
-
-        this.transferLayer.sendRequest({
-            type: "sendMessage",
-            data: { message: userInput }
-        }, this.handleServerResponse);
-    };
-
-    handleServerResponse = (response) => {
-        this.setState({ loading: false });
-
-        if (response.success) {
-            const newResponse = {
-                id: Date.now(),
-                text: response.data,
-                type: 'response'
-            };
-
-            this.setState(prevState => ({
-                messages: [...prevState.messages, newResponse]
-            }));
-        } else {
-            this.displayErrorMessage("Failed to send message.");
-        }
-    };
-
-    renderMessageItem = ({ item }) => {
-        const isUser = item.type === 'user';
-        let icon = isUser ? this.userIcon : this.responseIcon;
-        if(icon === null) icon = DefaultUserIcon;
-        else icon = { uri: icon };
-        return (
-            <View style={[
-                styles.messageContainer,
-                isUser ? styles.userMessage : styles.responseMessage
-            ]}>
-                <Image source={icon} style={styles.avatar} />
-                <Text style={styles.messageText}>{item.text}</Text>
-            </View>
-        );
     };
 
     render() {
-        const { messages, userInput, loading } = this.state;
-        if(loading) return super.render();
+        const { messages, inputText } = this.state;
 
         return (
-            <KeyboardAvoidingView style={styles.container} behavior="padding">
-                <Text style={styles.title}>{this.props.chatType} Chat</Text>
+            <ScrollView style={styles.container}>
                 <FlatList
                     data={messages}
                     renderItem={this.renderMessageItem}
                     keyExtractor={item => item.id.toString()}
-                    style={styles.chatBox}
+                    contentContainerStyle={styles.messageList}
+                    inverted
                 />
-                <View style={styles.inputContainer}>
+                <KeyboardAvoidingView behavior="padding" style={styles.inputContainer}>
                     <TextInput
                         style={styles.input}
-                        value={userInput}
-                        onChangeText={text => this.setState({ userInput: text })}
-                        placeholder="Type your message here..."
+                        placeholder="Type a message..."
+                        placeholderTextColor="#888"
+                        value={inputText}
+                        onChangeText={text => this.setState({ inputText: text })}
                     />
-                    {loading ? <ActivityIndicator size="small" color="#0000ff" /> : <Button title="Send" onPress={this.sendMessage} />}
-                </View>
-            </KeyboardAvoidingView>
+                    <Button title="Send" onPress={this.sendMessage} />
+                </KeyboardAvoidingView>
+            </ScrollView>
         );
     }
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        paddingTop: 50
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 10
-    },
-    chatBox: {
-        flex: 1,
-    },
-    messageContainer: {
-        flexDirection: 'row',
-        padding: 10,
-        alignItems: 'center'
-    },
-    userMessage: {
-        justifyContent: 'flex-end',
-        marginLeft: 50
-    },
-    responseMessage: {
-        justifyContent: 'flex-start',
-        marginRight: 50
-    },
-    avatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        marginRight: 10
-    },
-    messageText: {
-        fontSize: 16
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        padding: 10
-    },
-    input: {
-        flex: 1,
-        marginRight: 10,
-        borderWidth: 1,
-        borderColor: 'gray',
-        borderRadius: 5,
-        padding: 10
-    }
+    // Add your styles here
 });
 
 export default ChatInterface;
