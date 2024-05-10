@@ -5,8 +5,10 @@ mod session;
 mod workers;
 
 use crate::ServerConfig;
+use chrono::Utc;
 use data_structure::Json;
 use futures::FutureExt;
+use mongodb::bson::{bson, doc};
 use serde_json::json;
 use tokio::signal::ctrl_c;
 use std::sync::Arc;
@@ -25,7 +27,8 @@ pub struct MainServer
   db : Option<Arc<database::Db>>,
   listener : Option<TcpListener>,
   sessions: Arc<Mutex<session::Sessions>>,
-  gptbot : Option<Arc<ChatGPT>>
+  gptbot : Option<Arc<ChatGPT>>,
+  adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>
 }
 
 impl MainServer {
@@ -40,9 +43,78 @@ impl MainServer {
     println!("Server started at {}", self.config.port);
   }
 
+  async fn handle_adviser_stream(db : Arc<Db>,
+    sessions : Arc<Mutex<session::Sessions>>,
+    adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>)
+  {
+    println!("Adviser connected");
+
+    let mut buf = [0; 1024];
+    loop {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        let mut adviser = adviser.lock().await;
+        if adviser.is_none() {
+          break;
+        }
+        let adviser = adviser.as_mut().unwrap();
+        let mut adviser = adviser.lock().await;
+        let n = adviser.read(&mut buf).await;
+        if n.is_err() {
+          break;
+        }
+        let n = n.unwrap();
+        if n == 0 {
+          break;
+        }
+        let received : Json = serde_json::from_slice(&buf[..n]).unwrap();
+        let username = received.get("username").and_then(|x| x.as_str());
+        let message = received.get("message").and_then(|x| x.as_str());
+        if username.is_none() || message.is_none() {
+          continue;
+        }
+        let username = username.unwrap();
+        let message = message.unwrap();
+        let session = sessions.lock().await.get_session(username).await;
+        if session.is_none() {
+          // update db
+          let response = db.users_adviser_conversation.find_one
+          (doc! {"username" : username} ,None).await;
+          if response.is_err() {
+            continue;
+          }
+          let response = response.unwrap();
+          if response.is_none() {
+            let result = db.users_adviser_conversation.insert_one(
+                doc! {"username" : username, 
+                "content" : [message.to_string()]
+                }, None).await;
+            result.unwrap();
+          }
+          else {
+            let entry = bson!({"role": "adviser",
+            "msg":message.to_string(),
+            "time": Utc::now().to_rfc3339()});
+            let result = db.users_adviser_conversation.update_one(
+              doc! {"username" : username},
+              doc! {"$push": {"content": entry}},
+              None).await;
+            result.unwrap();
+          }
+        }
+        else 
+        {
+          // update session
+          session.unwrap().lock().await.append_adviser_conversation(message.to_string(), 
+          "adviser".to_string()).await;   
+        }
+    }
+  }
+
   async fn handle_stream(mut stream : TcpStream, db : Arc<Db>,
     sessions : Arc<Mutex<session::Sessions>>,
-    bot: Arc<ChatGPT>)
+    bot: Arc<ChatGPT>,
+    adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>,
+    adviser_key : String)
   {
     let mut buf = [0; 1024];
     let mut session : Option<Arc<Mutex<Session>>> = None;
@@ -101,7 +173,7 @@ impl MainServer {
             "update_user_info" => {
               if let Some(session) = session.clone()
               {
-                Self::update_user_info(&request_json, db.clone(), session).await
+                Self::update_user_info(&request_json, session).await
               }
               else {
                 Err(())
@@ -110,7 +182,7 @@ impl MainServer {
             "get_user_info" => {
               if let Some(session) = session.clone()
               {
-                Self::get_user_info_worker(&request_json, db.clone(), session).await
+                Self::get_user_info_worker(&request_json, session).await
               }
               else {
                 Err(())
@@ -119,7 +191,7 @@ impl MainServer {
             "estimate_score" => {
               if let Some(session) = session.clone()
               {
-                Self::estimate_score_worker(&request_json, db.clone(), session).await
+                Self::estimate_score_worker(&request_json, session).await
               }
               else {
                 Err(())
@@ -156,6 +228,67 @@ impl MainServer {
               if let Some(session) = session.clone()
               {
                 Self::send_message_to_bot_worker(&request_json, session, bot.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
+            "adviser_login" =>
+            {
+              let key = request_json.get("key").and_then(|x| x.as_str());
+              if key.is_none()
+              {
+                Err(())
+              }
+              else {
+                let key = key.unwrap();
+                if key == adviser_key
+                {
+                  adviser.lock().await.replace(Arc::new(Mutex::new(stream)));
+                  tokio::spawn(
+                  Self::handle_adviser_stream(db.clone(), 
+                  sessions.clone(), adviser.clone()));
+                  return;
+                }
+                else {
+                  Err(())
+                }
+              }
+            }
+            "get_adviser_conversation"=> {
+              if let Some(session) = session.clone()
+              {
+                Self::get_adviser_conversation_worker(&request_json, session).await
+              }
+              else {
+                Err(())
+              }
+            }
+            "send_message_to_adviser"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::send_message_to_adviser_worker(&request_json, session, adviser.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
+            "get_user_posts"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::get_user_posts_worker(&request_json, session, db.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
+            "get_user_deals"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::get_user_deals_worker(&request_json, session, db.clone()).await
               }
               else {
                 Err(())
@@ -211,7 +344,9 @@ impl MainServer {
 
             tokio::spawn(
               Self::handle_stream(stream, self.db.clone().unwrap(), sessions_clone,
-              self.gptbot.clone().unwrap())
+              self.gptbot.clone().unwrap(),
+              self.adviser.clone(),
+              self.config.adviser_key.clone())
             );
           }
           _ = ctrl_c().fuse() => {
@@ -230,7 +365,8 @@ impl MainServer {
       db: None,
       listener: None,
       sessions: Arc::new(Mutex::new(session::Sessions::new())),
-      gptbot: None
+      gptbot: None,
+      adviser : Arc::new(Mutex::new(None))
     }
   }
 
@@ -244,6 +380,6 @@ impl MainServer {
 
   pub async fn stop(&mut self)
   {
-    self.sessions.lock().await.clear_sessions();
+    self.sessions.lock().await.clear_sessions().await;
   }
 }

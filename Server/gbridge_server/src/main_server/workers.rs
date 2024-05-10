@@ -9,6 +9,8 @@ use futures::StreamExt;
 use mongodb::bson::{self, doc, DateTime};
 use mongodb::Database;
 use serde_json::json;
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use chatgpt::client::ChatGPT;
 
@@ -115,7 +117,7 @@ impl main_server::MainServer
     }
   }
 
-  pub async fn update_user_info(request : &Json, db : Arc<Db>, 
+  pub async fn update_user_info(request : &Json, 
     session: Arc<Mutex<Session>>) -> Result<Json,()>
   {
     let content = request.get("content").
@@ -168,7 +170,7 @@ impl main_server::MainServer
     }));
   }
 
-  pub async fn get_user_info_worker(request : &Json, db : Arc<Db>, 
+  pub async fn get_user_info_worker(request : &Json,
     session: Arc<Mutex<Session>>) -> Result<Json,()>
   {
     let content = request.get("content").
@@ -228,7 +230,7 @@ impl main_server::MainServer
     }));
   }
 
-  pub async fn estimate_score_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
+  pub async fn estimate_score_worker(request : &Json, session : Arc<Mutex<Session>>)
   -> Result<Json,()>
   {
     let preserved = request.get("preserved");
@@ -357,6 +359,7 @@ impl main_server::MainServer
     }
 
     let post_id = post_id.unwrap();
+    let dealer = dealer.unwrap();
 
     let item = db.public_market.find_one(doc! {
       "_id": bson::oid::ObjectId::parse_str(post_id).unwrap()
@@ -370,16 +373,23 @@ impl main_server::MainServer
       return Err(());
     }
     let item = item.unwrap();
+    let poster_username = item.get("username").unwrap().as_str().unwrap();
     let post_type = item.get("post_type").unwrap().as_str().unwrap();
     let lender : String;
     let borrower : String;
+    let lender_username : String;
+    let borrower_username : String;
     if post_type == "lend" {
       lender = item.get("poster").unwrap().to_string();
-      borrower = session.lock().await.username.clone();
+      borrower = dealer.to_string();
+      lender_username = poster_username.to_string();
+      borrower_username = session.lock().await.username.clone();
     }
     else if post_type == "borrow" {
-      lender = session.lock().await.username.clone();
+      lender = dealer.to_string();
       borrower = item.get("poster").unwrap().to_string();
+      lender_username = session.lock().await.username.clone();
+      borrower_username = poster_username.to_string();
     }
     else {
       panic!("invalid post type");
@@ -395,8 +405,8 @@ impl main_server::MainServer
       "description": item.get("description").unwrap().as_str().unwrap(),
       "extra": item.get("extra").unwrap().as_str().unwrap(),
       "created_time": chrono::Utc::now().to_rfc3339(),
-      "poster_username": item.get("username").unwrap().as_str().unwrap(),
-      "dealer_username": session.lock().await.username.clone(),
+      "lender_username": lender_username,
+      "borrower_username": borrower_username,
     };
 
     let response = db.public_deals.insert_one(entry, None).await;
@@ -536,6 +546,131 @@ impl main_server::MainServer
       "status": 200,
       "preserved": preserved,
       "content": response
+    }));
+  }
+
+  pub async fn get_adviser_conversation_worker(request : &Json, session : Arc<Mutex<Session>>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    session.lock().await.retrieve_adviser_conversation().await;
+    let conversation = session.lock().await.adviser_conversation.clone();
+    return Ok(json!({
+      "type": "get_adviser_conversation",
+      "status": 200,
+      "preserved": preserved,
+      "content": conversation
+    }));
+  }
+
+  pub async fn send_message_to_adviser_worker(request : &Json, session : Arc<Mutex<Session>>,
+  adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content").and_then(|c| c.as_str());
+    if content.is_none() {
+      return  Err(());
+    }
+    let msg = content.unwrap();
+    session.lock().await.
+    append_adviser_conversation(msg.to_string(), "user".to_string()).await;
+    let adviser = adviser.lock().await;
+    if adviser.is_none() {
+      println!("Send message, but adviser is offline");
+      return Ok(
+        json!(
+          {
+            "type": "send_message_to_adviser",
+            "status": 200,
+            "preserved": preserved,
+          }
+        )
+      );
+    }
+    let adviser = adviser.as_ref().unwrap();
+    let mut adviser = adviser.lock().await;
+    let json = json!(
+      {
+        "username": session.lock().await.username.clone(),
+        "content": msg
+      }
+    );
+    let result = adviser.write_all(json.to_string().as_bytes()).await;
+    if result.is_err() {
+      println!("Send message, but adviser is offline");
+    }
+    return Ok(
+      json!(
+        {
+          "type": "send_message_to_adviser",
+          "status": 200,
+          "preserved": preserved,
+        }
+      )
+    );
+  }
+
+  pub async fn get_user_posts_worker(request : &Json, session : Arc<Mutex<Session>>,
+  db : Arc<Db>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let username = session.lock().await.username.clone();
+    let cursor = db.public_market.find(doc! {
+      "username": username
+    }, None).await;
+    if cursor.is_err() {
+      return Err(());
+    }
+    let mut cursor = cursor.unwrap();
+    let mut content = json!([]);
+    while let Some(result) = cursor.next().await {
+      match result {
+        Ok(doc) => {
+          let doc = bson::to_bson(&doc).unwrap(); // Convert bson to json
+          content.as_array_mut().unwrap().push(doc.into());
+        }
+        Err(e) => return Err(()),
+      }
+    }
+    return Ok(json!({
+      "type": "get_user_posts",
+      "status": 200,
+      "preserved": preserved,
+      "content": content
+    }));
+  }
+  pub async fn get_user_deals_worker(request : &Json, session : Arc<Mutex<Session>>,
+  db : Arc<Db>) -> Result<Json, ()>
+  {
+    let preserved = request.get("preserved");
+    let username = session.lock().await.username.clone();
+    let cursor = db.public_deals.find(doc! {
+      "$or": [
+        {"lender_username": username.clone()},
+        {"borrower_username": username.clone()}
+      ]
+    }, None).await;
+    if cursor.is_err() {
+      return Err(());
+    }
+    let mut cursor = cursor.unwrap();
+    let mut content = json!([]);
+    while let Some(result) = cursor.next().await {
+      match result {
+        Ok(doc) => {
+          let doc = bson::to_bson(&doc).unwrap(); // Convert bson to json
+          content.as_array_mut().unwrap().push(doc.into());
+        }
+        Err(e) => return Err(()),
+      }
+    }
+    return Ok(json!({
+      "type": "get_user_posts",
+      "status": 200,
+      "preserved": preserved,
+      "content": content
     }));
   }
 }
