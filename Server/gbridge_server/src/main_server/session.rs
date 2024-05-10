@@ -188,14 +188,26 @@ impl Session {
     }
     let conversation = self.adviser_conversation.as_ref().unwrap();
     let content = serde_json::to_string(conversation).unwrap();
-    self.db.users_adviser_conversation.update_one(doc! {
+    let existing_doc = self.db.users_adviser_conversation.find_one(doc! {
       "username": &self.username
-    }, doc! {
-      "$set": {
+    }, None).await.unwrap();
+
+    if existing_doc.is_some() {
+      self.db.users_adviser_conversation.update_one(doc! {
+        "username": &self.username
+      }, doc! {
+        "$set": {
+          "content": content,
+          "time": Utc::now().to_rfc3339()
+        }
+      }, None).await.unwrap();
+    } else {
+      self.db.users_adviser_conversation.insert_one(doc! {
+        "username": &self.username,
         "content": content,
         "time": Utc::now().to_rfc3339()
-      }
-    }, None).await.unwrap();
+      }, None).await.unwrap();
+    }
   }
 
   pub async fn append_adviser_conversation(&mut self, 
