@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
       marginTop: 20,
     },
     button: {
-        marginHorizontal: 10,
+        margin: 10,
         paddingVertical: 10,
         paddingHorizontal: 20,
         backgroundColor: '#007BFF',
@@ -62,7 +62,6 @@ const styles = StyleSheet.create({
     },
     button1: {
       width: '30%',
-      margin: 10,
     },
     buttonText: {
         color: 'white',  // Makes text color white for better visibility on blue background

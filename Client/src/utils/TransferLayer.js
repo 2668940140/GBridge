@@ -7,6 +7,11 @@ class TransferLayer {
         this.retryCount = 0;
         this.maxRetries = maxRetries;
         this.retryDelay = retryDelay;
+        this.isConnected = false;
+    }
+
+    checkConnection() {
+        return this.isConnected;
     }
 
     connect() {
@@ -19,6 +24,7 @@ class TransferLayer {
                     console.log('Connected to server!');
                     this.setupResponseHandler();
                     this.retryCount = 0;
+                    this.isConnected = true;
                     resolve();
                 });
 
@@ -26,6 +32,7 @@ class TransferLayer {
                     console.error('Socket error:', error);
                     this.socket.destroy();
                     this.socket = null; // Cleanup the socket on error
+                    this.isConnected = false;
                     if (this.retryCount < this.maxRetries) {
                         this.retryCount++;
                         console.log(`Retry ${this.retryCount}/${this.maxRetries} in ${this.retryDelay/1000} seconds...`);
@@ -39,6 +46,7 @@ class TransferLayer {
                 this.socket.on('close', () => {
                     console.log('Connection closed!');
                     this.socket = null;
+                    this.isConnected = false;
                 });
             } else {
                 console.log("Attempt to connect when socket already exists.");
@@ -91,7 +99,7 @@ class TransferLayer {
     }
 
     async sendRequest(requestObject, onResponseReceived) {
-        requestObject.user = sessionToken
+        requestObject.sessionToken = sessionToken
         requestObject.preserved = requestObject.type;
         
         this.onResponseReceived = onResponseReceived;

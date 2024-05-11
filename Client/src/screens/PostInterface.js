@@ -12,7 +12,7 @@ class PostInterface extends BaseConInterface {
         const post_type = this.props.route.params.post_type;
         this.state = {
             post_type : post_type,
-            poster: 'Investor',
+            poster: post_type === 'lend' ? 'Investor' : 'Borrower',
             amount: 0.,
             amountValid: false,
             interest: 0.,

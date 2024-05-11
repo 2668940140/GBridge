@@ -1,7 +1,7 @@
 // src/config/config.json
 {
     "server": {
-        "use_REAL": false,
+        "use_REAL": true,
         "ip_EUM": "10.0.2.2",
         "ip_REAL": "192.168.137.1",
         "port": 29175

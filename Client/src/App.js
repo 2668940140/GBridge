@@ -102,7 +102,7 @@ const clearAuthenticationData = async () => {
         <Stack.Screen name="PersonalPage" component={PersonalPage} />
         <Stack.Screen name="PersonalSettings" component={PersonalSettings} />
         <Stack.Screen name="Match" component={MatchInterface} />
-        <Stack.Screen name="Repayment" component={RepaymentInterface} />
+        <Stack.Screen name="Repay" component={RepaymentInterface} />
         <Stack.Screen name="Score" component={ScoreInterface} />
         <Stack.Screen name="Verification" component={VerificationInterface} />
         <Stack.Screen name="PersonalInfo" component={PersonalInfo} />      

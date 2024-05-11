@@ -26,7 +26,7 @@ class PersonalInfo extends BaseConInterface {
     
     componentDidMount() {
         this.establishConnection().then(() => {
-            // this.fetchUserData();
+            this.fetchUserData();
         }).catch((error) => {
             this.establishConnectionFailure();
         });
