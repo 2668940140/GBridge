@@ -58,6 +58,7 @@ class PersonalSettings extends BaseConInterface {
         const { newIcon } = this.state;
         this.setState({ isLoading: false });  // Stop loading
         if (response.success) {
+            global.gUserIcon = newIcon;
             this.setState({ userIcon: newIcon}, () => {
                 this.setState({ newIcon: null});
                 this.displaySuccessMessage('Profile updated successfully!');

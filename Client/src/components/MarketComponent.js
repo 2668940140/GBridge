@@ -57,7 +57,7 @@ class MarketComponent extends BaseConComponent {
             extra: null
         }, response => {
             if (response.success) {
-                this.setState({ items: parseItem(response.content) });
+                this.setState({ items: parseItem(response.content).sort((a, b) => b.score - a.score) });
             } else {
                 this.displayErrorMessage("Failed to fetch market items.");
             }
@@ -111,7 +111,7 @@ class MarketComponent extends BaseConComponent {
 
     renderItem = ({ item }) => (
         <TouchableOpacity style={styles.itemContainer} onPress={() => this.handleItemPress(item)}>
-            <Text>{item.poster} - {item.interest} - {item.amount} - {item.period}</Text>
+            <Text>{item.poster} - {item.score.toFix(2)} - {item.interest} - {item.amount} - {item.period}</Text>
         </TouchableOpacity>
     );
 
@@ -175,7 +175,7 @@ class MarketComponent extends BaseConComponent {
                     />
                 </View>
                 <Text style={styles.title}>Post in the Market</Text>
-                <Text style={styles.info}>poster - interest - amount - duration {"(/mouth)"}</Text>
+                <Text style={styles.info}>poster-score-interest-amount-duration{"(/mouth)"}</Text>
                 
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -212,6 +212,7 @@ class MarketComponent extends BaseConComponent {
                                 <Text style={styles.modalInfo}>Amount : {selectedItem.amount}</Text>
                                 <Text style={styles.modalInfo}>Period : {selectedItem.period} mouths</Text>
                                 <Text style={styles.modalInfo}>Method : {selectedItem.method}</Text>
+                                <Text style={styles.modalInfo}>Score : {selectedItem.score}</Text>
                                 {selectedItem.extra && (
                                     <>
                                     <Text style={styles.modalInfo}>Extra Info :</Text>

@@ -37,14 +37,12 @@ class RegisterInterface extends  BaseConInterface{
     sendVerificationCode = () => {
         const email = this.state.emailName + '@' + this.state.emailDomain;
         this.setState({ email: email });
-        this.setState({ isCodeSent: true });
-        return;
         if (email) {
             this.setState({ isLoading: true });
             this.transferLayer.sendRequest({
-                type: "sendVerification",
+                type: "get_verificationcode",
                 content: {
-                email: email
+                    email: email
                 },
                 extra: null
             }, this.handleVerificationResponse);
@@ -74,7 +72,7 @@ class RegisterInterface extends  BaseConInterface{
                 type: "register",
                 content: {
                 email: email,
-                verificationCode: verificationCode,
+                verificationcode: verificationCode,
                 password: password,
                 username: username
                 },

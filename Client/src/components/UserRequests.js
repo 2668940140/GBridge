@@ -189,7 +189,7 @@ class UserRequests extends BaseConComponent {
 
     renderRequest = ({ item }) => (
         <TouchableOpacity style={styles.requestItem} onPress={() => this.handleAction(item)}>
-            <Text style={styles.title}>{item.amount} - {item.period} - {item.date}</Text>
+            <Text style={styles.title}>{item.status === 'Post' && (item.score + " - ")}{item.amount} - {item.period} - {item.date}</Text>
         </TouchableOpacity>
     );
 
@@ -222,7 +222,7 @@ class UserRequests extends BaseConComponent {
                     </TouchableOpacity>
                 </View>
                 <Text style={styles.header}>{type} Posts</Text>
-                <Text style={[styles.header, {fontSize : 16}]}>amount - period {"(/mouth)"} - date</Text>
+                <Text style={[styles.header, {fontSize : 16}]}>score - amount - period {"(/mouth)"} - date</Text>
                 <FlatList
                     data={posts[type]}
                     renderItem={this.renderRequest}
