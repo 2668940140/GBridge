@@ -6,12 +6,10 @@ import LoginInterface from './screens/LoginInterface';
 import RegisterInterface from './screens/RegisterInterface';
 import HomeScreen from './screens/HomeScreen';
 import WelcomeInterface from './screens/WelcomeInterface';
-import InvestmentInterface from './screens/InvestmentInterface';
+import PostInterface from './screens/PostInterface';
 import PersonalPage from './screens/PersonalPage';
 import PersonalSettings from './screens/PersonalSettings';
-import LoanInterface from './screens/LoanInterface';
 import MatchInterface from './screens/MatchInterface';
-import LoanAppDetail from './screens/LoanAppDetail';
 import RepaymentInterface from './screens/RepaymentInterface';
 import ScoreInterface from './screens/ScoreInterface';
 import VerificationInterface from './screens/VerificationInterface';
@@ -100,12 +98,10 @@ const clearAuthenticationData = async () => {
         <Stack.Screen name="Login" component={LoginInterface} options={{headerRight:null}}/>
         <Stack.Screen name="Register" component={RegisterInterface} options={{headerRight:null}}/>
         <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Investment" component={InvestmentInterface} />
+        <Stack.Screen name="Post" component={PostInterface} />
         <Stack.Screen name="PersonalPage" component={PersonalPage} />
         <Stack.Screen name="PersonalSettings" component={PersonalSettings} />
-        <Stack.Screen name="Loan" component={LoanInterface} />
         <Stack.Screen name="Match" component={MatchInterface} />
-        <Stack.Screen name="LoanAppDetail" component={LoanAppDetail} />
         <Stack.Screen name="Repayment" component={RepaymentInterface} />
         <Stack.Screen name="Score" component={ScoreInterface} />
         <Stack.Screen name="Verification" component={VerificationInterface} />

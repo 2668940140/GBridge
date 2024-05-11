@@ -1,5 +1,6 @@
 import BaseComponent from "./BaseComponent";
 import TransferLayer from "../utils/TransferLayer";
+import { useRef } from "react";
 
 export default class BaseConComponent extends BaseComponent {
     constructor(props) {

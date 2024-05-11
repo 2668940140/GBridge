@@ -18,12 +18,15 @@ class PersonalPage extends BaseInterface {
                     navigation={navigation}
                     targetScreen="PersonalInfo"
                 />
-                <UserRequests navigation={navigation} />
+                
                 <TwoButtonsInline
-                    button1Title="Invest"
-                    button2Title="Loan"
-                    button1OnPress={() => navigation.navigate('Investment')}
-                    button2OnPress={() => navigation.navigate('Loan')} />
+                    title1="Invest"
+                    title2="Loan"
+                    onPress1={() => navigation.navigate('Post', {post_type: 'lend'})}
+                    onPress2={() => navigation.navigate('Post', {post_type : 'borrow'})}
+                    disable1={false}
+                    disable2={false}
+                    />
             </View>
         );
     }

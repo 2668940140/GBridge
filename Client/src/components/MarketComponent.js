@@ -1,70 +1,51 @@
-import React from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import BaseComponent from './BaseComponent';
-import TransferLayer from '../utils/TransferLayer';
+import React, { useRef } from 'react';
+import { View, FlatList, StyleSheet, TouchableOpacity, Text, Modal, Button } from 'react-native';
+import BaseConComponent from './BaseConComponent';
 import MultiSelect from 'react-native-multiple-select';
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { TwoButtonsInline } from './MyButton';
 
-const Tab = createMaterialTopTabNavigator();
-
-// Define individual tab screens
-function LoanMarket({ navigation }) {
-    return <MarketList type="loan" navigation={navigation} />;
-}
-
-function InvestMarket({ navigation }) {
-    return <MarketList type="invest" navigation={navigation} />;
-}
-
-class MarketComponent extends BaseComponent {
-    render() {
-        return (
-            <Tab.Navigator>
-                <Tab.Screen name="Loan" component={LoanMarket} />
-                <Tab.Screen name="Invest" component={InvestMarket} />
-            </Tab.Navigator>
-        );
+class MarketComponent extends BaseConComponent {
+    constructor(props) {
+        super(props);
+        this.state = {
+            type: "loan",
+            items: [],
+            selectedFilters: [],
+            availableFilters: [
+                { id: 'filter1', name: 'Full Payment', value: "Lump Sum Payment" },
+                { id: 'filter2', name: 'Interest-Bearing Installments', value: "Interest-Bearing" },
+                { id: 'filter3', name: 'Interest-Free Installments', value: "Interest-Free" }
+            ],
+            showModal: false,
+            selectedItem: null
+        };
     }
-};
-
-class MarketList extends BaseComponent {
-    state = {
-        items: [],
-        selectedFilters: [],
-        availableFilters: [
-            { id: 'filter1', name: 'Filter 1' },
-            { id: 'filter2', name: 'Filter 2' },
-            { id: 'filter3', name: 'Filter 3' }
-        ],
-        showModal: false,
-        selectedItem: null
-    };
-
-    transferLayer = new TransferLayer();
 
     componentDidMount() {
-        this.transferLayer.connect().then(() => {
+        this.establishConnection().then(() => {
             this.fetchItems();
-        }).catch(error => {
-            this.setState({ loading: false });
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
+        }).catch(() => {
+            this.displayErrorMessage("Failed to establish connection.");
         });
-    }
-
-    componentWillUnmount() {
-        this.transferLayer.closeConnection();
     }
 
     fetchItems = () => {
         const { type } = this.props;
         const { selectedFilters } = this.state;
-        
-        transferLayer.sendRequest({
-            type: `getMarketItems`,
-            data: { marketType: type, filters: selectedFilters }
+        content = {
+            $and:[ 
+                { post_type: type},
+                { $or: selectedFilters.map(filter => ({ method: filter.value })) }
+            ]
+        }
+
+        this.transferLayer.sendRequest({
+            type: `get_market_posts`,
+            content: content,
+            extra: null
         }, response => {
             if (response.success) {
-                this.setState({ items: response.items });
+                this.setState({ items: response.content });
             } else {
                 this.displayErrorMessage("Failed to fetch market items.");
             }
@@ -106,40 +87,67 @@ class MarketList extends BaseComponent {
 
     renderItem = ({ item }) => (
         <TouchableOpacity style={styles.itemContainer} onPress={() => this.handleItemPress(item)}>
-            <Text>{item.title} - {item.status}</Text>
+            <Text>{item.poster} - {item.interest} - {item.amount} - {item.period}</Text>
         </TouchableOpacity>
     );
 
+    switchTab = (tab) => {
+        this.setState({ type: tab });
+    };
+
     render() {
-        const { items, availableFilters, selectedFilters, showModal } = this.state;
+        const { items, availableFilters, selectedFilters, showModal, type, selectedItem } = this.state;
+        console.log(availableFilters);
+        console.log(type);
         return (
-            <View style={{ flex: 1 }}>
-                <MultiSelect
-                    hideTags
-                    items={availableFilters}
-                    uniqueKey="id"
-                    onSelectedItemsChange={this.onSelectedItemsChange}
-                    selectedItems={selectedFilters}
-                    selectText="Pick Filters"
-                    searchInputPlaceholderText="Search Filters..."
-                    onChangeInput={(text) => console.log(text)}
-                    tagRemoveIconColor="#CCC"
-                    tagBorderColor="#CCC"
-                    tagTextColor="#CCC"
-                    selectedItemTextColor="#CCC"
-                    selectedItemIconColor="#CCC"
-                    itemTextColor="#000"
-                    displayKey="name"
-                    searchInputStyle={{ color: '#CCC' }}
-                    submitButtonColor="#48d22b"
-                    submitButtonText="Apply"
-                    fixedHeight={true}
-                    onConfirm={this.applyFilters}
-                />
+            <View style={styles.container}>
+                <View style={styles.tabContainer}>
+                    <TouchableOpacity 
+                        style={[styles.tab, type === 'loan' && styles.activeTab]} 
+                        onPress={() => this.switchTab('loan')}
+                    >
+                        <Text style={styles.tabText}>Loan</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.tab, type === 'invest' && styles.activeTab]} 
+                        onPress={() => this.switchTab('invest')}
+                    >
+                        <Text style={styles.tabText}>Invest</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.multiSelectContainer}>
+                    <MultiSelect
+                        items={availableFilters}
+                        uniqueKey="id"
+                        onSelectedItemsChange={this.onSelectedItemsChange}
+                        selectedItems={selectedFilters}
+                        selectText="Pick Filters"
+                        searchInputPlaceholderText="Search Filters..."
+                        onChangeInput={(text) => console.log(text)}
+                        altFontFamily="ProximaNova-Light"
+                        tagRemoveIconColor="blacks"
+                        tagTextColor="black"
+                        selectedItemTextColor="rgba(0, 123, 255, 1)"
+                        selectedItemIconColor="rgba(0, 123, 255, 1)"
+                        itemTextColor="black"
+                        displayKey="name"
+                        searchInputStyle={{ color: '#808080' }}
+                        submitButtonColor="rgba(0, 123, 255, 0.8)"
+                        submitButtonText="Apply"
+                        styleItemsContainer={[styles.filterContainer,
+                            {backgroundColor: '#e0e0e0',}
+                        ]}
+                        styleInputGroup={styles.inputContainer}  
+                        tagContainerStyle={styles.filterContainer}                
+                    />
+                </View>
+                <Text style={styles.title}>Post in the Market</Text>
+                <Text style={styles.info}>poster-interest-amount-duration{"(per mouth)"}</Text>
                 <FlatList
+                    style={styles.list}
                     data={items}
                     renderItem={this.renderItem}
-                    keyExtractor={item => item.id.toString()}
+                    keyExtractor={item => item.interest.toString()}
                 />
                 {showModal && selectedItem && (
                     <Modal
@@ -149,10 +157,25 @@ class MarketList extends BaseComponent {
                     >
                         <View style={styles.centeredView}>
                             <View style={styles.modalView}>
-                                <Text style={styles.modalTitle}>{selectedItem.title}</Text>
-                                <Text>{selectedItem.description}</Text>
-                                <Button title="Close" onPress={this.closeDialog} />
-                                <Button title="Match" onPress={this.handleMatch} color="#2196F3" />
+                                <Text style={styles.modalTitle}>Post Details</Text>
+                                <Text style={styles.modalInfo}>Poster : {selectedItem.poster}</Text>
+                                <Text style={styles.modalInfo}>Interest : {selectedItem.interest} /mouth</Text>
+                                <Text style={styles.modalInfo}>Amount : {selectedItem.amount}</Text>
+                                <Text style={styles.modalInfo}>Period : {selectedItem.period} mouths</Text>
+                                {selectedItem.extra && (
+                                    <>
+                                    <Text style={styles.modalInfo}>Extra Info :</Text>
+                                    <Image source={{ uri: extra }} style={styles.image} />
+                                    </>                                  
+                                )}
+                                <Text style={styles.modalInfo}>Description</Text>
+                                <Text style={styles.modalDes}>{selectedItem.description}</Text>
+                                <TwoButtonsInline
+                                    onPress1={this.handleMatch}
+                                    title1="Match"
+                                    onPress2={this.closeDialog}
+                                    title2="Cancel"
+                                />
                             </View>
                         </View>
                     </Modal>
@@ -163,10 +186,69 @@ class MarketList extends BaseComponent {
 }
 
 const styles = StyleSheet.create({
-    itemContainer: {
+    container: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 10,
+        borderWidth: 1,
+    },
+    tabContainer: {
+        flexDirection: 'row',
+        marginBottom: 10
+    },
+    tab: {
+        flex: 1,
+        alignItems: 'center',
         padding: 10,
         borderBottomWidth: 1,
-        borderBottomColor: '#ccc'
+        borderBottomColor: '#808080'
+    },
+    activeTab: {
+        borderBottomColor: 'blue'
+    },
+    tabText: {
+        color: 'black'
+    },
+    multiSelectContainer: {
+        paddingHorizontal: 10,
+        width: windowWidth - 50,
+    },
+    filterContainer:{
+        marginVertical: 5,
+        borderRadius: 10,
+        backgroundColor: 'rgba(0, 123, 255, 0.6)',
+    },
+    inputContainer:{
+        margin:5,
+        fontSize: 18,
+        borderBottomWidth: 2,
+        borderBottomColor: '#808080'
+    },
+    title:{
+        fontSize: 20,
+        color: 'black',
+        fontWeight: 'bold',
+        marginVertical: 10
+    },
+    title:{
+        fontSize: 16,
+        marginVertical: 10
+    },
+    list:{
+        borderBlockColor: 'black',
+        borderWidth: 1,
+        width: windowWidth - 70,
+        padding: 15,
+        marginVertical: 5
+    },
+    itemContainer: {
+        fontSize: 16,
+        padding: 10,
+        borderBottomWidth: 2,
+        borderBottomColor: '#808080',
+        width: windowWidth - 100,
+        borderRadius: 10,
+        backgroundColor: '#e0e0e0',
     },
     centeredView: {
         flex: 1,
@@ -192,8 +274,24 @@ const styles = StyleSheet.create({
     modalTitle: {
         marginBottom: 15,
         textAlign: "center",
-        fontWeight: "bold"
-    }
+        fontWeight: "bold",
+        fontSize: 24
+    },
+    modalInfo: {
+        marginVertical: 5,
+        textAlign: "center",
+        fontSize: 20
+    },
+    modalDes: {
+        marginBottom: 10,
+        fontSize: 16
+    },
+    image: {
+        width: 100,
+        height: 100,
+        marginVertical: 5,
+        alignSelf: 'center',
+    },
 });
 
 export default MarketComponent;

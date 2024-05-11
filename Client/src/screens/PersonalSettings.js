@@ -7,7 +7,7 @@ import BaseConInterface from './BaseConInterface';
 import { resetNavigator } from '../utils/ResetNavigator';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 import { TwoButtonsInline } from '../components/MyButton';
-import NumberInput from '../components/NumberInput';
+import {NumberInput} from '../components/NumberInput';
 
 class PersonalSettings extends BaseConInterface {
     constructor(props) {
