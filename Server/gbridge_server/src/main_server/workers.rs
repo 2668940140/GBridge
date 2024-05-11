@@ -431,7 +431,7 @@ impl main_server::MainServer
         return Ok(json!({
           "type": "submit_market_post",
           "status": 200,
-          "scroe": score,
+          "score": score,
           "preserved": preserved,
         }));
       },
