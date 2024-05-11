@@ -22,6 +22,7 @@ pub struct Session
   pub debt : Option<f64>,
   pub assets : Option<f64>,
   pub email : Option<String>,
+  pub password : Option<String>,
   pub bot_conversation : Option<converse::Conversation>,
   pub adviser_conversation : Option<Json>,
   last_adviser_conversation_retrieve_time: Option<DateTime<Utc>>,
@@ -114,6 +115,7 @@ impl Session {
       email: None,
       bot_conversation: None,
       adviser_conversation: None,
+      password: None,
       db: db,
       last_active_time: Utc::now(),
       last_adviser_conversation_retrieve_time: None,
@@ -326,6 +328,13 @@ impl Session {
             self.email = receive_item.unwrap().as_str().map(|s| s.to_string());
           }
         },
+        "password" =>
+        {
+          let receive_item = received.get("password");
+          if receive_item.is_some() {
+            self.password = receive_item.unwrap().as_str().map(|s| s.to_string());
+          }
+        }
         _ => {panic!("Invalid item");}
       }
     }

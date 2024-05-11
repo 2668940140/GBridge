@@ -325,6 +325,16 @@ impl main_server::MainServer
         "email"=> {
           content["email"] = session.
           lock().await.email.as_ref().map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "username"=>
+        {
+          let entry = json!(session.lock().await.username.clone());
+          content["username"] = entry;
+        },
+        "password"=>
+        {
+          content["password"] = session.
+          lock().await.password.as_ref().map(|s| json!(s)).unwrap_or(json!(null));
         }
         _ => {panic!("Invalid item");}
       }
@@ -978,7 +988,7 @@ impl main_server::MainServer
   }
 
   pub async fn get_verificationcode_worker(request : &Json,
-    authenticator : Arc<Mutex<Authenticator>>)
+    authenticator : Arc<Mutex<Authenticator>>, db :Arc<Db>)
     -> Result<Json,()>
   {
     let preserved = request.get("preserved");
@@ -987,12 +997,34 @@ impl main_server::MainServer
       return Err(());
     }
     let email = content.unwrap().as_str();
-    if email.is_none() {
+    let username = content.unwrap().as_str();
+    if email.is_none() && username.is_none() ||
+    email.is_some() && username.is_some() {
       return Err(());
     }
-    let email = email.unwrap();
+    let unwrapped_email : String;
+    if username.is_some()
+    {
+      let username = username.unwrap();
+      let response = db.users_base_info.find_one(doc! {
+        "username": username
+      }, None).await;
+      if response.is_err() {
+        return Err(());
+      }
+      let response = response.unwrap();
+      if response.is_none() {
+        return Err(());
+      }
+      let response = response.unwrap();
+      unwrapped_email = response.get("email").unwrap().as_str().unwrap().to_string();
+    }
+    else {
+      unwrapped_email = email.unwrap().to_string();
+    }
+
     let response = 
-    authenticator.lock().await.send_verification_email(email.to_string());
+    authenticator.lock().await.send_verification_email(unwrapped_email);
     if response.is_err() {
       return Err(());
     }

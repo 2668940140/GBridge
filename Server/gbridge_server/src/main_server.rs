@@ -367,7 +367,7 @@ impl MainServer {
             "get_verificationcode"=>
             {
               Self::get_verificationcode_worker
-              (&request_json, authenticator.clone()).await
+              (&request_json, authenticator.clone(), db.clone()).await
             }
             _ => {
               Err(())
