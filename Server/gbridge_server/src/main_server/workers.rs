@@ -1,5 +1,6 @@
 use core::{borrow, fmt};
 use std::clone;
+use std::f32::MIN_POSITIVE;
 use std::sync::Arc;
 
 use crate::main_server::authenticator::Authenticator;
@@ -431,7 +432,7 @@ impl main_server::MainServer
     }
   }
 
-  pub async fn withraw_market_post_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
+  pub async fn withdraw_market_post_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
   ->Result<Json,()>
   {
     let preserved = request.get("preserved");
@@ -440,13 +441,18 @@ impl main_server::MainServer
       return Err(());
     }
     let content = content.unwrap();
-    let _id = content.get("_id").and_then(|i| i.as_str());
+    let _id = content.get("_id");
     if _id.is_none() {
       return Err(());
     }
     let _id = _id.unwrap();
+    let _id = bson::to_bson(_id);
+    if _id.is_err() {
+      return Err(());
+    }
+    let _id = _id.unwrap();
     let response = db.public_market.find_one(doc! {
-      "_id": bson::oid::ObjectId::parse_str(_id).unwrap()
+      "_id": _id.clone()
     }, None).await;
     if response.is_err() {
       return Err(());
@@ -462,7 +468,7 @@ impl main_server::MainServer
       return Err(());
     }
     db.public_market.delete_one(doc! {
-      "_id": bson::oid::ObjectId::parse_str(_id).unwrap()
+      "_id": _id
     }, None).await.unwrap();
     return Ok(json!({
       "type": "withdraw_market_post",
@@ -525,7 +531,8 @@ impl main_server::MainServer
       return Err(());
     }
     let content = content.unwrap();
-    let post_id = content.get("_id").and_then(|p| p.as_str());
+    let post_id = content.get("_id");
+
     let dealer = content.get("dealer").and_then(|d| d.as_str());
 
     if post_id.is_none() || dealer.is_none(){
@@ -533,10 +540,15 @@ impl main_server::MainServer
     }
 
     let post_id = post_id.unwrap();
+    let post_id = bson::to_bson(post_id);
+    if post_id.is_err() {
+      return Err(());
+    }
+    let _id = post_id.unwrap();
     let dealer = dealer.unwrap();
 
     let item = db.public_market.find_one(doc! {
-      "_id": bson::oid::ObjectId::parse_str(post_id).unwrap()
+      "_id": _id.clone()
     }, None).await;
 
     if item.is_err() {
@@ -554,14 +566,14 @@ impl main_server::MainServer
     let lender_username : String;
     let borrower_username : String;
     if post_type == "lend" {
-      lender = item.get("poster").unwrap().to_string();
+      lender = item.get("poster").unwrap().as_str().unwrap().to_string();
       borrower = dealer.to_string();
       lender_username = poster_username.to_string();
       borrower_username = session.lock().await.username.clone();
     }
     else if post_type == "borrow" {
       lender = dealer.to_string();
-      borrower = item.get("poster").unwrap().to_string();
+      borrower = item.get("poster").unwrap().as_str().unwrap().to_string();
       lender_username = session.lock().await.username.clone();
       borrower_username = poster_username.to_string();
     }
@@ -577,7 +589,7 @@ impl main_server::MainServer
       "period": item.get("period").unwrap().as_i64().unwrap(),
       "method": item.get("method").unwrap().as_str().unwrap(),
       "description": item.get("description").unwrap().as_str().unwrap(),
-      "extra": item.get("extra").unwrap().as_str().unwrap(),
+      "extra": item.get("extra").and_then(|e| e.as_str()),
       "created_time": chrono::Utc::now().to_rfc3339(),
       "lender_username": lender_username,
       "borrower_username": borrower_username,
@@ -590,7 +602,7 @@ impl main_server::MainServer
     db.public_history_market.
     insert_one(item, None).await.unwrap();
     db.public_market.delete_one(doc! {
-      "_id": bson::oid::ObjectId::parse_str(post_id).unwrap()
+      "_id": _id
     }, None).await.unwrap();
 
     return Ok(json!({
@@ -862,13 +874,18 @@ impl main_server::MainServer
       return Err(());
     }
     let content = content.unwrap();
-    let _id = content.get("_id").and_then(|i| i.as_str());
+    let _id = content.get("_id");
     if _id.is_none() {
       return Err(());
     }
     let _id = _id.unwrap();
+    let _id = bson::to_bson(_id);
+    if _id.is_err() {
+      return Err(());
+    }
+    let _id = _id.unwrap();
     let doc = db.public_deals.find_one(doc! {
-      "_id": bson::oid::ObjectId::parse_str(_id).unwrap()
+      "_id": _id.clone()
     }, None).await;
     if doc.is_err() {
       return Err(());
@@ -879,7 +896,7 @@ impl main_server::MainServer
     }
     db.public_history_deals.insert_one(doc.unwrap(), None).await.unwrap();
     let response = db.public_deals.delete_one(doc! {
-      "_id": bson::oid::ObjectId::parse_str(_id).unwrap()
+      "_id": _id
     }, None).await;
     if response.is_err() {
       return Err(());

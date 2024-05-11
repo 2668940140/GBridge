@@ -216,10 +216,10 @@ impl MainServer {
                 Err(())
               }
             }
-            "withraw_market_post" => {
+            "withdraw_market_post" => {
               if let Some(session) = session.clone()
               {
-                Self::withraw_market_post_worker(&request_json, db.clone(), session).await
+                Self::withdraw_market_post_worker(&request_json, db.clone(), session).await
               }
               else {
                 Err(())
