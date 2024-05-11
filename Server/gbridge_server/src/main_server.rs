@@ -3,6 +3,7 @@ mod utils;
 mod database;
 mod session;
 mod workers;
+mod authenticator;
 
 use crate::ServerConfig;
 use chrono::Utc;
@@ -17,6 +18,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use chatgpt::client::ChatGPT;
 
+use self::authenticator::Authenticator;
 use self::database::Db;
 use self::session::Session;
 use std::time::Duration;
@@ -28,7 +30,8 @@ pub struct MainServer
   listener : Option<TcpListener>,
   sessions: Arc<Mutex<session::Sessions>>,
   gptbot : Option<Arc<ChatGPT>>,
-  adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>
+  adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>,
+  authenticator : Arc<Mutex<authenticator::Authenticator>>
 }
 
 impl MainServer {
@@ -118,7 +121,8 @@ impl MainServer {
     sessions : Arc<Mutex<session::Sessions>>,
     bot: Arc<ChatGPT>,
     adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>,
-    adviser_key : String)
+    adviser_key : String,
+    authenticator : Arc<Mutex<Authenticator>>)
   {
     let mut buf = [0; 1024];
     let mut session : Option<Arc<Mutex<Session>>> = None;
@@ -158,12 +162,14 @@ impl MainServer {
 
           let response : Result<Json, ()> = match request_type {
             "register" => {
-              Self::register_worker(&request_json, db.clone()).await
+              Self::register_worker(&request_json, db.clone(),
+              authenticator.clone()).await
             }
             "login" => {
               let tmp_response = 
               Self::login_worker(&request_json, db.clone(), sessions.clone(),
-              &mut username).await;
+              &mut username,
+              authenticator.clone()).await;
               println!("username {} logined", username.clone().unwrap_or("None".to_string()));
               if tmp_response.is_ok() {
                 session = sessions.lock().await.get_session(username.as_ref().unwrap()).await;
@@ -358,6 +364,11 @@ impl MainServer {
                 Err(())
               }
             }
+            "get_verificationcode"=>
+            {
+              Self::get_verificationcode_worker
+              (&request_json, authenticator.clone()).await
+            }
             _ => {
               Err(())
             }
@@ -398,7 +409,8 @@ impl MainServer {
   pub async fn run(mut self) {
     self.initialize().await;
 
-    tokio::spawn(Self::clean_outdated_sessions(self.sessions.clone()));
+    tokio::spawn(Self::server_cleaning
+    (self.sessions.clone(), self.authenticator.clone()));
 
     loop {
         // ...
@@ -412,7 +424,9 @@ impl MainServer {
               Self::handle_stream(stream, self.db.clone().unwrap(), sessions_clone,
               self.gptbot.clone().unwrap(),
               self.adviser.clone(),
-              self.config.adviser_key.clone())
+              self.config.adviser_key.clone(),
+              self.authenticator.clone()
+            )
             );
           }
           _ = ctrl_c().fuse() => {
@@ -432,15 +446,19 @@ impl MainServer {
       listener: None,
       sessions: Arc::new(Mutex::new(session::Sessions::new())),
       gptbot: None,
-      adviser : Arc::new(Mutex::new(None))
+      adviser : Arc::new(Mutex::new(None)),
+      authenticator : Arc::new(Mutex::new(authenticator::Authenticator::new()))
     }
   }
 
-  async fn clean_outdated_sessions(sessions : Arc<Mutex<session::Sessions>>)
+  async fn server_cleaning(sessions : Arc<Mutex<session::Sessions>>,
+  authenticator : Arc<Mutex<authenticator::Authenticator>>)
   {
     loop {
-      tokio::time::sleep(Duration::from_secs(600)).await;
+      tokio::time::sleep(Duration::from_secs(60)).await;
+      println!("Server Cleaning");
       sessions.lock().await.clean_outdated_sessions().await;
+      authenticator.lock().await.clear_outdated_entries();
     }
   }
 

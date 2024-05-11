@@ -84,7 +84,6 @@ impl Sessions
 
   pub async fn clean_outdated_sessions(&mut self)
   {
-    println!("Cleaning outdated sessions");
     let mut to_remove = Vec::new();
     for (username, session) in self.sessions.iter() {
       let s = session.lock().await;

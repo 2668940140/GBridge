@@ -2,10 +2,12 @@ use core::{borrow, fmt};
 use std::clone;
 use std::sync::Arc;
 
+use crate::main_server::authenticator::Authenticator;
 use crate::main_server;
 use crate::main_server::data_structure::Json;
 use chrono::{FixedOffset, Utc};
 use futures::StreamExt;
+use lettre::transport::smtp::response;
 use mongodb::bson::{self, doc, DateTime, Document};
 use mongodb::Database;
 use serde_json::json;
@@ -19,7 +21,8 @@ use super::session::{self, Session, FINANCIAL_FILEDS};
 
 impl main_server::MainServer
 {
-  pub async fn register_worker(request : &Json, db : Arc<Db>) -> Result<Json,()>
+  pub async fn register_worker(request : &Json, db : Arc<Db>,
+  authenticator : Arc<Mutex<Authenticator>>) -> Result<Json,()>
   {
     let content = request.get("content").
     and_then(|c| c.as_object());
@@ -30,8 +33,9 @@ impl main_server::MainServer
     let email = content.get("email").and_then(|e| e.as_str());
     let username = content.get("username").and_then(|u| u.as_str());
     let password = content.get("password").and_then(|p| p.as_str());
-
-    if email.is_none() || username.is_none() || password.is_none() {
+    let verificationcode = content.get("verificationcode").and_then(|v| v.as_str());
+    if email.is_none() || username.is_none() 
+    || password.is_none() || verificationcode.is_none() {
       return Err(());
     }
 
@@ -41,6 +45,7 @@ impl main_server::MainServer
     let email = email.unwrap();
     let username = username.unwrap();
     let password = password.unwrap();
+    let verificationcode = verificationcode.unwrap();
 
     let finding = db.users_base_info.find_one(doc! {
       "username": username
@@ -52,6 +57,13 @@ impl main_server::MainServer
       "email": email
     }, None).await;
     if finding.is_ok() && finding.unwrap().is_some() {
+      return Err(());
+    }
+    //authenticate
+    let is_verificationcode_valid = 
+    authenticator.lock().await.
+    verify(email.to_string(), verificationcode.to_string());
+    if !is_verificationcode_valid {
       return Err(());
     }
 
@@ -77,45 +89,140 @@ impl main_server::MainServer
 
   pub async fn login_worker(request : &Json, db : Arc<Db>, 
   sessions :Arc<Mutex<session::Sessions>>,
-  outer_username : &mut Option<String>) -> Result<Json,()>
+  outer_username : &mut Option<String>,
+  authenticator : Arc<Mutex<Authenticator>>) -> Result<Json,()>
   {
+    let preserved = request.get("preserved");
     let content = request.get("content").
     and_then(|c| c.as_object());
     if content.is_none() {
       return Err(());
     }
     let content = content.unwrap();
+    let mut login_type = content.get("login_type").and_then(|l| l.as_str());
+    if login_type.is_none() {
+      login_type = Some("username_password");
+    }
     let username = content.get("username").and_then(|u| u.as_str());
     let password = content.get("password").and_then(|p| p.as_str());
+    let email = content.get("email").and_then(|e| e.as_str());
+    let verificationcode = content.get("verificationcode").and_then(|v| v.as_str());
+    let unwrapped_username : String;
+    match login_type.unwrap() {
+      "username_password" => {
+        if username.is_none() || password.is_none() {
+          return Err(());
+        }
+        let username = username.unwrap();
+        let password = password.unwrap();
+        
+        let response = db.users_base_info.find_one(doc! {
+          "username": username,
+          "password": password
+        }, None).await;
 
-    if username.is_none() || password.is_none() {
-      return Err(());
-    }
-
-    let preserved = request.get("preserved");
-
-    let username = username.unwrap();
-    let password = password.unwrap();
+        if response.is_err(){
+          return Err(());
+        }
+        let response = response.unwrap();
+        if response.is_none() {
+          return Err(());
+        }
+        let response = response.unwrap();
+        unwrapped_username = response.get("username")
+        .unwrap().as_str().unwrap().to_string();
+      },
+      "email_password" => {
+        if email.is_none() || password.is_none() {
+          return Err(());
+        }
+        let email = email.unwrap();
+        let password = password.unwrap();
+        
+        let response = db.users_base_info.find_one(doc! {
+          "email": email,
+          "password": password
+        }, None).await;
     
-    let response = db.users_base_info.find_one(doc! {
-      "username": username,
-      "password": password
-    }, None).await;
-
-    if response.is_err() || response.unwrap().is_none() {
-      return Err(());
-    }
-    else
-    {
-      sessions.lock().await.add_session(username.to_string(), db.clone()).await;
-      *outer_username = Some(username.to_string());
+        if response.is_err(){
+          return Err(());
+        }
+        let response = response.unwrap();
+        if response.is_none() {
+          return Err(());
+        }
+        let response = response.unwrap();
+        unwrapped_username = response.get("username")
+        .unwrap().as_str().unwrap().to_string();
+      },
+      "username_verificationcode" => {
+        if username.is_none() || verificationcode.is_none() {
+          return Err(());
+        }
+        let username = username.unwrap();
+        let verificationcode = verificationcode.unwrap();
+        
+        let response = db.users_base_info.find_one(doc! {
+          "username": username
+        }, None).await;
+    
+        if response.is_err(){
+          return Err(());
+        }
+        let response = response.unwrap();
+        if response.is_none() {
+          return Err(());
+        }
+        let response = response.unwrap();
+      
+        let email = response.get("email").unwrap().as_str().unwrap();
+        let is_verificationcode_valid = 
+        authenticator.lock().await.
+        verify(email.to_string(), verificationcode.to_string());
+        if !is_verificationcode_valid {
+          return Err(());
+        }
+        unwrapped_username = response.get("username")
+        .unwrap().as_str().unwrap().to_string();
+      },
+      "email_verificationcode" => {
+        if email.is_none() || verificationcode.is_none() {
+          return Err(());
+        }
+        let email = email.unwrap();
+        let verificationcode = verificationcode.unwrap();
+        
+        let response = db.users_base_info.find_one(doc! {
+          "email": email
+        }, None).await;
+    
+        if response.is_err(){
+          return Err(());
+        }
+        let response = response.unwrap();
+        if response.is_none() {
+          return Err(());
+        }
+        let response = response.unwrap();
+        unwrapped_username = response.get("username")
+        .unwrap().as_str().unwrap().to_string();
+        let is_verificationcode_valid = 
+        authenticator.lock().await.
+        verify(email.to_string(), verificationcode.to_string());
+        if !is_verificationcode_valid {
+          return Err(());
+        }
+      },
+      _ => {return Err(());}
+    };
+      sessions.lock().await.add_session(unwrapped_username.clone(), db.clone()).await;
+      *outer_username = Some(unwrapped_username);
       return Ok(json!({
         "type": "login",
         "status": 200,
         "preserved": preserved
-      }));
+      }))
     }
-  }
 
   pub async fn update_user_info(request : &Json, 
     session: Arc<Mutex<Session>>) -> Result<Json,()>
@@ -405,7 +512,7 @@ impl main_server::MainServer
       return Err(());
     }
     let content = content.unwrap();
-    let post_id = content.get("post_id").and_then(|p| p.as_str());
+    let post_id = content.get("_id").and_then(|p| p.as_str());
     let dealer = content.get("dealer").and_then(|d| d.as_str());
 
     if post_id.is_none() || dealer.is_none(){
@@ -839,4 +946,32 @@ impl main_server::MainServer
       "content": content
     }));
   }
+
+  pub async fn get_verificationcode_worker(request : &Json,
+    authenticator : Arc<Mutex<Authenticator>>)
+    -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content");
+    if content.is_none() {
+      return Err(());
+    }
+    let email = content.unwrap().as_str();
+    if email.is_none() {
+      return Err(());
+    }
+    let email = email.unwrap();
+    let response = 
+    authenticator.lock().await.send_verification_email(email.to_string());
+    if response.is_err() {
+      return Err(());
+    }
+
+    return Ok(json!({
+      "type": "get_verificationcode",
+      "status": 200,
+      "preserved": preserved
+    }));
+  }
+
 }
