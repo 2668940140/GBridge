@@ -95,11 +95,11 @@ class LoginInterface extends BaseConInterface {
     
     updateUserInfo = async () => {
         this.transferLayer.sendRequest({
-            type: "get_userinfo",
+            type: "get_user_info",
             content: [
-                'portrait',
-                'username',
-                'password',
+                "portrait",
+                "username",
+                "password",
                 "authenticated"
             ],
             extra: null
