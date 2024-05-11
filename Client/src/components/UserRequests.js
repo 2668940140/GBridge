@@ -1,54 +1,112 @@
 import React from 'react';
-import { View, Text, Button, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
-import BaseComponent from './BaseComponent';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import BaseConComponent from './BaseConComponent';
 import RequestDetail from './RequestDetail';
-import TransferLayer from '../utils/TransferLayer';
+import parseItems from '../utils/ParseItem';
+import InputModal from './InputModel';
 
-class UserRequests extends BaseComponent {
+class UserRequests extends BaseConComponent {
     constructor(props) {
         super(props);
         this.state = {
-            loanRequests: [],
-            investmentRequests: [],
+            type: "loan",
+            posts: {
+                loan: [],
+                invest: []
+            },
+            deals: {
+                loan: [],
+                invest: []
+            },
             loading: true,
             selectedRequest: null,
-            showModal: false
+            showModal: false,
+            reminderModal: false,
         };
-        this.transferLayer = new TransferLayer();
     }
+
+    switchTab = (tab) => {
+        if(tab !== this.state.type){
+            this.setState({ type: tab });
+        }
+    };
 
     componentDidMount() {
-        this.transferLayer.connect().then(() => {
+        this.establishConnection().then(() => {
             this.fetchRequests();
-        }).catch(error => {
+        }).catch(() => {
+            this.displayErrorMessage('Failed to establish connection.');
             this.setState({ loading: false });
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
         });
-    }
-
-    componentWillUnmount() {
-        this.transferLayer.closeConnection();
     }
 
     fetchRequests = () => {
+        if(!this.transferLayer || this.transferLayer.checkConnection() === false) 
+        {
+            console.log('Connection not established');
+            return;
+        }
+        this.setState(
+            {posts: {
+                loan: [],
+                invest: []
+            },
+            deals: {
+                loan: [],
+                invest: []
+            },
+            loading: true,
+        });
         this.transferLayer.sendRequest({
-            type: "getUserRequests",
-            data: {}
+            type: "get_user_posts",
+            extra: null
         }, response => {
             if (response.success) {
-                const loanRequests = response.requests.filter(req => req.type === 'loan').sort(this.sortByStatus);
-                const investmentRequests = response.requests.filter(req => req.type === 'investment').sort(this.sortByStatus);
-                this.setState({ loanRequests, investmentRequests, loading: false });
+                let items = parseItems(response.content);
+                items = items.map(item => {
+                    return {
+                        ...item,
+                        status : 'Post'
+                    }
+                })
+                const loanPosts = items.filter(req => req.post_type === 'borrow');
+                const investmentPosts = items.filter(req => req.post_type === 'lend');
+                this.setState({ posts: { loan: loanPosts, invest: investmentPosts }}, () => {
+                    this.transferLayer.sendRequest({
+                        type: "get_user_deals",
+                        extra: null
+                    }, response => {
+                        if (response.success) {
+                            let items = parseItems(response.content);
+                            items = items.map(item => {
+                                return {
+                                    ...item,
+                                    status : 'Deal'
+                                }
+                            })
+                            const loanDeals = items.filter(req => req.post_type === 'borrow');
+                            const investmentDeals =items.filter(req => req.post_type === 'lend');
+                            this.setState({ deals: { loan: loanDeals, invest: investmentDeals }}, () => { 
+                                this.setState({ loading: false });
+                                console.log('Fetched posts and deals');
+                            });
+                        } else {
+                            this.displayErrorMessage('Failed to fetch deals.');
+                            this.setState({ loading: false });
+                        }
+                    }).catch(() => {
+                        this.displayErrorMessage('Failed to fetch deals.');
+                        this.setState({ loading: false });
+                    });
+                });
             } else {
-                this.displayErrorMessage('Failed to fetch requests.');
+                this.displayErrorMessage('Failed to fetch posts.');
                 this.setState({ loading: false });
             }
+        }).catch(() => {
+            this.displayErrorMessage('Failed to fetch posts.');
+            this.setState({ loading: false });
         });
-    };
-
-    sortByStatus = (a, b) => {
-        const order = { "ongoing": 1, "matched": 2, "pairing": 3, "due": 4 };
-        return order[a.status] - order[b.status];
     };
 
     handleAction = (item) => {
@@ -59,46 +117,145 @@ class UserRequests extends BaseComponent {
         this.setState({ showModal: false });
     };
     
+    deleteRequest = () => {
+        const { selectedRequest } = this.state;
+        this.transferLayer.sendRequest({
+            type: 'withdraw_market_post',
+            content: { _id : selectedRequest._id},
+            extra: null
+        }, response => {
+            if (response.success) {
+                this.displaySuccessMessage('Request deleted successfully.');
+                this.fetchRequests();
+            } else {
+                this.displayErrorMessage('Failed to delete request.');
+            }
+        }).catch(() => {
+            this.displayErrorMessage('Failed to delete request.');
+        });
+    };
+
+    repayRequest = () => {
+        const { selectedRequest } = this.state;
+        this.props.navigation.navigate('Repay', { item: selectedRequest });
+    };
+
+    remindRequest = () => {
+        this.setState({ reminderModal: true });
+    };
+
+    handleReminder = (message) => {
+        const { selectedRequest } = this.state;
+        this.transferLayer.sendRequest({
+            type: 'send_message',   
+            content: {
+                receiver: selectedRequest.borrower_username,
+                content: message
+            },
+            extra: null
+        }, response => {
+            if (response.success) {
+                this.displaySuccessMessage('Message sent successfully.');
+            } else {
+                this.displayErrorMessage('Failed to send message.');
+            }
+        }).catch(() => {
+            this.displayErrorMessage('Failed to send message.');
+        });
+        this.handleReminderModalClose();  // Close the modal after sending message
+    };
+
+    handleReminderModalClose = () => {
+        this.setState({ reminderModal: false });
+    };
+
     handleActionPress = (actionType) => {
-        console.log(actionType, 'action for', this.state.selectedRequest.title);
+        console.log(actionType, 'action for', this.state.selectedRequest.id);
+        switch(actionType) {
+            case 'delete':
+                this.deleteRequest();
+                break;
+            case 'repay':
+                this.repayRequest();
+                break;
+            case 'remind':
+                this.remindRequest();
+                break;
+            default:
+                break;
+        };
         this.handleModalClose();  // Close the modal after action
     };
 
     renderRequest = ({ item }) => (
         <TouchableOpacity style={styles.requestItem} onPress={() => this.handleAction(item)}>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text>Status: {item.status}</Text>
+            <Text style={styles.title}>{item.amount} - {item.period} - {item.date}</Text>
         </TouchableOpacity>
     );
 
+    renderEmptyComponent = () => {
+        return (
+            <View style={styles.emptyContainer}>
+                <Text>No request available</Text>
+            </View>
+        );
+    };
+
     render() {
-        const { loanRequests, investmentRequests, loading } = this.state;
+        const { loading, type, posts, deals, selectedRequest, showModal, reminderModal } = this.state;
         if (loading) return this.renderLoading();
     
         return (
             <View style={styles.container}>
-                <Text style={styles.header}>Loan Requests</Text>
+                <View style={styles.tabContainer}>
+                    <TouchableOpacity 
+                        style={[styles.tab, type === 'loan' && styles.activeTab]} 
+                        onPress={() => this.switchTab('loan')}
+                    >
+                        <Text style={styles.tabText}>Loan</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.tab, type === 'invest' && styles.activeTab]} 
+                        onPress={() => this.switchTab('invest')}
+                    >
+                        <Text style={styles.tabText}>Invest</Text>
+                    </TouchableOpacity>
+                </View>
+                <Text style={styles.header}>{type} Posts</Text>
+                <Text style={[styles.header, {fontSize : 16}]}>amount - period {"(/mouth)"} - date</Text>
                 <FlatList
-                    data={loanRequests}
+                    data={posts[type]}
                     renderItem={this.renderRequest}
-                    keyExtractor={item => item.id.toString()}
+                    keyExtractor={item => item.id }
                     style={styles.list}
+                    ListEmptyComponent={this.renderEmptyComponent}
                 />
-                <Text style={styles.header}>Investment Requests</Text>
+                <Text style={styles.header}>{type} Deals</Text>
+                <Text style={[styles.header, {fontSize : 16}]}>amount - period {"(/mouth)"} - date</Text>
                 <FlatList
-                    data={investmentRequests}
+                    data={deals[type]}
                     renderItem={this.renderRequest}
-                    keyExtractor={item => item.id.toString()}
+                    keyExtractor={item => item.id }
                     style={styles.list}
+                    ListEmptyComponent={this.renderEmptyComponent}
                 />
-                {selectedRequest && (
+                {showModal && selectedRequest && (
                 <RequestDetail
                     visible={showModal}
                     onRequestClose={this.handleModalClose}
                     request={selectedRequest}
                     onActionPress={this.handleActionPress}
                 />
-            )}
+                )}
+                { reminderModal && (
+                <InputModal
+                    visible={reminderModal}
+                    multiline={true}
+                    title="Send message to ${selectedRequest.borrower}"
+                    placeholder="Enter your message here"
+                    onConfirm={this.handleReminder}
+                    onRequestClose={this.handleReminderModalClose} />
+                )}
             </View>
         );
     }    
@@ -107,22 +264,48 @@ class UserRequests extends BaseComponent {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 10
+        padding: 10,
+        paddingBottom: 0,
+    },
+    tabContainer: {
+        flexDirection: 'row',
+        marginBottom: 10
+    },
+    tab: {
+        flex: 1,
+        alignItems: 'center',
+        padding: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#808080'
+    },
+    activeTab: {
+        borderBottomColor: 'blue'
     },
     header: {
-        fontSize: 20,
+        margin:5,
         fontWeight: 'bold',
-        marginTop: 20,
-        marginBottom: 10,
+        fontSize: 24,
         textAlign: 'center'
     },
     list: {
-        marginBottom: 20
+        flex: 1,
+        borderBlockColor: 'black',
+        borderWidth: 1,
+        margin: 5
+    },
+    emptyContainer: {
+        fontWeight: "bold",
+        fontSize: 24,
+        padding: 20, // Adjust padding as needed
+        alignItems: 'center', // Center the text horizontally
     },
     requestItem: {
-        padding: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc'
+        margin:5,
+        padding: 10,
+        borderBottomWidth: 2,
+        borderBottomColor: '#808080',
+        borderRadius: 10,
+        backgroundColor: '#e0e0e0',
     },
     title: {
         fontSize: 18,

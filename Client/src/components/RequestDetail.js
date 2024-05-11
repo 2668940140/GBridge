@@ -1,21 +1,32 @@
 import React from 'react';
-import { Modal, View, Text, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import { Modal, View, Text, StyleSheet, Image } from 'react-native';
+import { SingleButton } from './MyButton';
 
 const RequestDetail = ({ visible, onRequestClose, request, onActionPress }) => {
     const getActionButton = () => {
-        switch (request.status) {
-            case 'ongoing':
-                return <Button title="Repay" onPress={() => onActionPress('repay')} />;
-            case 'matched':
-                return <Button title="Match" onPress={() => onActionPress('match')} />;
-            case 'pairing':
-                return <Button title="Retreat" onPress={() => onActionPress('retreat')} />;
-            case 'due':
-                return <Button title="Delete" onPress={() => onActionPress('delete')} />;
-            default:
-                return null;
+        if(request.status === 'Post') {
+            return (
+                <SingleButton title="Delete" onPress={() => onActionPress('delete')} disable={false}/>
+            );
+        }else if(request.post_type === 'borrow' && request.status === 'Deal') {
+            return (
+                <SingleButton title="Repay" onPress={() => onActionPress('repay')} disable={false}/>
+            );
+        } else if(request.post_type === 'lend' && request.status === 'Deal'){ 
+            return (
+                <SingleButton title="Remind" onPress={() => onActionPress('remind')} disable={false}/>
+            );
         }
+        return null;
     };
+
+    const getCounterParty = () => {
+        if(request.post_type === 'borrow') {
+            return <Text style={styles.modalInfo}>Lender : {request.lender}</Text>
+        } else {
+            return <Text style={styles.modalInfo}>Borrower : {request.borrower}</Text>
+        }
+    }
 
     return (
         <Modal
@@ -26,11 +37,25 @@ const RequestDetail = ({ visible, onRequestClose, request, onActionPress }) => {
         >
             <View style={styles.centeredView}>
                 <View style={styles.modalView}>
-                    <Text style={styles.modalText}>Title: {request.title}</Text>
-                    <Text style={styles.modalText}>Status: {request.status}</Text>
-                    {/* Additional details can be added here */}
+                <Text style={styles.modalTitle}>{request.status} Details</Text>
+                {request.status === 'Deal' &&  getCounterParty()}
+                <Text style={styles.modalInfo}>Interest : {request.interest} /mouth</Text>
+                <Text style={styles.modalInfo}>Amount : {request.amount}</Text>
+                <Text style={styles.modalInfo}>Period : {request.period} mouths</Text>
+                <Text style={styles.modalInfo}>Method : {request.method}</Text>
+                <Text style={styles.modalInfo}>{request.status} Date : {request.date}</Text>
+                {request.extra && (
+                    <>
+                    <Text style={styles.modalInfo}>Extra Info :</Text>
+                    <Image source={{ uri: extra }} style={styles.image} />
+                    </>                                  
+                    )}
+                <Text style={styles.modalInfo}>Description</Text>
+                <Text style={styles.modalDes}>{request.description}</Text>
+                <View style={styles.buttonContainer}>
                     {getActionButton()}
-                    <Button title="Close" onPress={onRequestClose} />
+                    <SingleButton title="Close" onPress={onRequestClose} disable={false}/>
+                </View>                   
                 </View>
             </View>
         </Modal>
@@ -59,10 +84,32 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 5
     },
-    modalText: {
+    modalTitle: {
         marginBottom: 15,
-        textAlign: "center"
-    }
+        textAlign: "center",
+        fontWeight: "bold",
+        fontSize: 24
+    },
+    modalInfo: {
+        marginVertical: 5,
+        textAlign: "center",
+        fontSize: 20
+    },
+    modalDes: {
+        marginBottom: 10,
+        fontSize: 16
+    },
+    image: {
+        width: 100,
+        height: 100,
+        marginVertical: 5,
+        alignSelf: 'center',
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
 
 export default RequestDetail;

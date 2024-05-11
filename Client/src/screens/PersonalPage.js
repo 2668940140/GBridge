@@ -1,13 +1,26 @@
 import React from 'react';
-import { View, Button, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import BaseInterface from './BaseInterface';
 import ProfileBoard from '../components/ProfileBoard';
 import UserRequests from '../components/UserRequests';
-import { TwoButtonsInline } from '../components/MyButton';
+import { SingleButton } from '../components/MyButton';
 
 class PersonalPage extends BaseInterface {
     constructor(props) {
         super(props);
+        this.requestRef = React.createRef();
+    }
+
+    componentDidMount() {
+        this.props.navigation.addListener('focus', () => {
+          if (this.requestRef && this.requestRef.current) {
+            this.requestRef.current.fetchRequests();
+          }
+        });
+    }
+
+    componentWillUnmount() {
+        this.props.navigation.removeListener('focus');
     }
 
     render() {
@@ -18,15 +31,12 @@ class PersonalPage extends BaseInterface {
                     navigation={navigation}
                     targetScreen="PersonalInfo"
                 />
-                
-                <TwoButtonsInline
-                    title1="Invest"
-                    title2="Loan"
-                    onPress1={() => navigation.navigate('Post', {post_type: 'lend'})}
-                    onPress2={() => navigation.navigate('Post', {post_type : 'borrow'})}
-                    disable1={false}
-                    disable2={false}
-                    />
+                <UserRequests navigation={navigation} ref={this.requestRef}/>
+
+                <View style={styles.buttonContainer}>
+                    <SingleButton title="Loan" onPress={() => navigation.navigate('Post', {post_type: 'borrow'})} disable={false}/>
+                    <SingleButton title="Invest" onPress={() => navigation.navigate('Post', {post_type: 'lend'})} disable={false}/>
+                </View>
             </View>
         );
     }
@@ -35,8 +45,14 @@ class PersonalPage extends BaseInterface {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'space-between'
-    }
+        justifyContent: 'center',
+        paddingButton: 10,
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
 
 export default PersonalPage;
