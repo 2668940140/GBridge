@@ -13,7 +13,7 @@ use mongodb::Database;
 use serde_json::json;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, SetError};
 use chatgpt::client::ChatGPT;
 
 use super::database::Db;
@@ -342,8 +342,8 @@ impl main_server::MainServer
   {
     let preserved = request.get("preserved");
 
-    session.lock().await.retrive_from_db(&FINANCIAL_FILEDS).await;
-    let score = session.lock().await.estimate_score();
+    let score = 
+    session.lock().await.estimate_score().await;
     return Ok(json!({
       "type": "estimate_score",
       "status": 200,
@@ -378,6 +378,10 @@ impl main_server::MainServer
       period.is_none() || method.is_none() || description.is_none() {
       return Err(());
     }
+    if !session.lock().await.is_financial_info_complete().await {
+      return Err(());
+    }
+
     let post_type = post_type.unwrap();
     let poster = poster.unwrap();
     let amount = amount.unwrap();
@@ -389,6 +393,11 @@ impl main_server::MainServer
     if post_type != "lend" && post_type != "borrow" {
       return Err(());
     }
+
+    let score = session.lock().await
+    .estimate_post_score(post_type.to_string(), amount, interest, period, method.to_string())
+    .await;
+
     let username = session.lock().await.username.clone();
     let entry = doc! {
       "username": username,
@@ -400,7 +409,9 @@ impl main_server::MainServer
       "method": method,
       "description": description,
       "extra": extra,
+      "score": score,
       "created_time": chrono::Utc::now().to_rfc3339(),
+      "updated_time": chrono::Utc::now().to_rfc3339()
     };
 
     let response = db.public_market.insert_one(entry, None).await;
@@ -409,7 +420,8 @@ impl main_server::MainServer
         return Ok(json!({
           "type": "submit_market_post",
           "status": 200,
-          "preserved": preserved
+          "scroe": score,
+          "preserved": preserved,
         }));
       },
       Err(_) => {
@@ -458,7 +470,7 @@ impl main_server::MainServer
       "preserved": preserved
     }));
   }
-
+  
   pub async fn get_market_posts_worker(request : &Json, db : Arc<Db>) -> Result<Json,()>
   {
     let preserved = request.get("preserved");
@@ -501,6 +513,7 @@ impl main_server::MainServer
       "content": content // This is now a Vec<Json>
     }));
   }
+
 
   pub async fn make_deal_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>) 
   -> Result<Json,()>

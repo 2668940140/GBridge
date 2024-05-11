@@ -383,43 +383,102 @@ impl Session {
     }, None).await.unwrap();
   }
 
-  pub fn estimate_score(&self) -> f64
+  pub fn pridict(cash : Option<f64>,
+  income : Option<f64>,
+  expenditure : Option<f64>,
+  debt : Option<f64>,
+  assets: Option<f64>) -> f64
   {
     let mut score = 0.0;
-    if self.cash.is_some() {
-      score += self.cash.unwrap();
+    if let Some(cash_val) = cash {
+      score += cash_val;
     }
-    if self.income.is_some() {
-      score += 12.0 * self.income.unwrap();
+    if let Some(income_val) = income {
+      score += 12.0 * income_val;
     }
-    if self.expenditure.is_some() {
-      score -= 12.0 * self.expenditure.unwrap();
+    if let Some(expenditure_val) = expenditure {
+      score -= 12.0 * expenditure_val;
     }
-    if self.debt.is_some() {
-      score -= self.debt.unwrap();
+    if let Some(debt_val) = debt {
+      score -= debt_val;
     }
-    if self.assets.is_some() {
-      score += self.assets.unwrap();
+    if let Some(assets_val) = assets {
+      score += assets_val;
     }
     score = (score + 1000000.0) / 2000000.0;
     score = f64::max(f64::min(score, 1.0), 0.0);
-    if self.income.is_some() && self.expenditure.is_some() {
-      score = score * (self.income.unwrap() + 500.0) / (self.expenditure.unwrap() + 500.0);
+    if let (Some(income_val), Some(expenditure_val)) = (income, expenditure) {
+      score = score * (income_val + 500.0) / (expenditure_val + 500.0);
     }
-    if self.debt.is_some() && self.assets.is_some(){
-      score = score * (self.assets.unwrap() + 500.0) / (self.debt.unwrap() + 500.0);
+    if let (Some(debt_val), Some(assets_val)) = (debt, assets) {
+      score = score * (assets_val + 500.0) / (debt_val + 500.0);
     }
     
-    if self.cash.is_some() && self.assets.is_some(){
+    if let (Some(cash_val), Some(assets_val)) = (cash, assets) {
       score = score *  f64::min(f64::max(
-        (self.cash.unwrap() * 10.0 + 500.0) / (self.assets.unwrap() + 500.0)
+        (cash_val * 10.0 + 500.0) / (assets_val + 500.0)
         , 0.5),1.2);
     }
-    if self.debt.is_some() && self.cash.is_some(){
-      score = score * (self.cash.unwrap() + 500.0) / (self.debt.unwrap() + 500.0);
+    if let (Some(debt_val), Some(cash_val)) = (debt, cash) {
+      score = score * (cash_val + 500.0) / (debt_val + 500.0);
     }
     score = f64::max(f64::min(score, 1.0), 0.0);
     score
+  }
+
+  pub async fn estimate_score(&mut self) -> f64
+  {
+    self.retrive_from_db(&FINANCIAL_FILEDS).await;
+    Session::pridict(self.cash, self.income, 
+    self.expenditure, self.debt, self.assets)
+  }
+
+  pub async fn estimate_post_score(&mut self,
+  post_type : String,
+  amount : f64,
+  interest : f64,
+  period : i64,
+  method : String) -> f64
+  {
+    if !self.is_financial_info_complete().await {
+      return -1.0;
+    }
+    let mut cash = self.cash.unwrap();
+    let mut debt = self.debt.unwrap();
+    let mut assets = self.assets.unwrap();
+    let mut income = self.income.unwrap();
+    let mut expenditure = self.expenditure.unwrap();
+    if post_type == "lend"
+    {
+      cash -= amount;
+      if cash < 0.0 {
+        return 0.0;
+      }
+      assets -= amount;
+      if assets < 0.0 {
+        return 0.0;
+      }
+      income += amount * interest / 12.0;
+    }
+    else if post_type == "borrow"
+    {
+      if amount - amount * interest / 12.0 * period as f64 <= 0.0
+      {
+        // Too long or interet too high
+        return 0.0;
+      }
+      cash += amount - amount * interest / 12.0 * period as f64;
+      assets += amount - amount * interest / 12.0 * period as f64;
+      debt += amount;
+      expenditure += amount * interest / 12.0;
+    }
+    else
+    {
+      panic!("Invalid post type")
+    }
+    Self::pridict(Some(cash), Some(income),
+    Some(expenditure), Some(debt), Some(assets))
+
   }
 
   pub fn update_last_active_time(&mut self)
@@ -466,5 +525,13 @@ impl Session {
     }, None).await.unwrap().unwrap();
     let time = received.get("time").unwrap().as_str().unwrap();
     DateTime::parse_from_rfc3339(time).unwrap().with_timezone(&Utc)
+  }
+
+  pub async fn is_financial_info_complete(&mut self) -> bool
+  {
+    self.retrive_from_db(&FINANCIAL_FILEDS).await;
+    self.cash.is_some() && self.income.is_some() && 
+    self.expenditure.is_some() && self.debt.is_some() && 
+    self.assets.is_some()
   }
 }

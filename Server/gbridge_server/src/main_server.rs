@@ -6,9 +6,9 @@ mod workers;
 mod authenticator;
 
 use crate::ServerConfig;
-use chrono::Utc;
+use chrono::{Datelike, Utc};
 use data_structure::Json;
-use futures::FutureExt;
+use futures::{FutureExt, StreamExt};
 use mongodb::bson::{bson, doc};
 use serde_json::json;
 use tokio::signal::ctrl_c;
@@ -409,8 +409,8 @@ impl MainServer {
   pub async fn run(mut self) {
     self.initialize().await;
 
-    tokio::spawn(Self::server_cleaning
-    (self.sessions.clone(), self.authenticator.clone()));
+    tokio::spawn(Self::server_period_events(self.sessions.clone(),
+    self.authenticator.clone(), self.db.clone().unwrap()));
 
     loop {
         // ...
@@ -451,19 +451,73 @@ impl MainServer {
     }
   }
 
-  async fn server_cleaning(sessions : Arc<Mutex<session::Sessions>>,
-  authenticator : Arc<Mutex<authenticator::Authenticator>>)
+  async fn server_period_events(sessions : Arc<Mutex<session::Sessions>>,
+  authenticator : Arc<Mutex<authenticator::Authenticator>>,
+  db : Arc<Db>)
   {
+    let mut last_time = Utc::now();
+
     loop {
       tokio::time::sleep(Duration::from_secs(60)).await;
       println!("Server Cleaning");
       sessions.lock().await.clean_outdated_sessions().await;
       authenticator.lock().await.clear_outdated_entries();
+
+      let current_time = Utc::now();
+      if current_time.day() != last_time.day()
+      {
+        println!("Server Daily Maintaining");
+        Self::update_post_score(db.clone()).await;
+      }
+      last_time = current_time;
     }
   }
 
   pub async fn stop(&mut self)
   {
     self.sessions.lock().await.clear_sessions().await;
+  }
+
+  pub async fn update_post_score(db : Arc<Db>) {
+    // Update post score
+    let mut posts = 
+    db.public_history_market.find(None, None).await.unwrap();
+
+    while let Some(post) = posts.next().await {
+      if post.is_err()
+      {
+        panic!("Error while updating post score");
+      }
+      let post = post.unwrap();
+      let post_updated_time = post.get("updated_time").unwrap().as_str().unwrap();
+      let post_updated_time = 
+      chrono::DateTime::parse_from_rfc3339(post_updated_time).unwrap();
+      let username = post.get("username").unwrap().as_str().unwrap();
+      let userinfo = db.users_base_info.find_one(
+        doc! {"username": username}, None).await.unwrap().unwrap();
+      let user_updated_time = userinfo.get("time").unwrap().as_str().unwrap();
+      let user_updated_time = 
+      chrono::DateTime::parse_from_rfc3339(user_updated_time).unwrap();
+      if user_updated_time <= post_updated_time {
+        continue;
+      }
+      let post_type = post.get("post_type").unwrap().as_str().unwrap();
+      let amount = post.get("amount").unwrap().as_f64().unwrap();
+      let interest = post.get("interest").unwrap().as_f64().unwrap();
+      let period = post.get("period").unwrap().as_i64().unwrap();
+      let method = post.get("method").unwrap().as_str().unwrap();
+      let mut user_session = Session::new(username.to_string(), db.clone());
+      let score = 
+      user_session.estimate_post_score(post_type.to_string(), 
+      amount, interest, period, method.to_string()).await;
+      let response = db.public_history_market.update_one(
+        doc! {"username": username},
+        doc! {"$set": {"score": score,
+        "updated_time": chrono::Utc::now().to_rfc3339()}}, None).await;
+      if response.is_err()
+      {
+        panic!("Error while updating post score");
+      }
+    }
   }
 }

@@ -1,9 +1,14 @@
+use std::sync::Arc;
+
+use futures::StreamExt;
 use mongodb::{ 
-	bson::Document,
+	bson::{doc, Document},
 	Client,
 	Collection,
   Database
 };
+
+use super::session::Session;
 
 pub struct Db
 {
