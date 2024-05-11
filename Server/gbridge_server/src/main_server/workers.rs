@@ -312,6 +312,46 @@ impl main_server::MainServer
     }
   }
 
+  pub async fn withraw_market_post_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
+  ->Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content");
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+    let _id = content.get("_id").and_then(|i| i.as_str());
+    if _id.is_none() {
+      return Err(());
+    }
+    let _id = _id.unwrap();
+    let response = db.public_market.find_one(doc! {
+      "_id": bson::oid::ObjectId::parse_str(_id).unwrap()
+    }, None).await;
+    if response.is_err() {
+      return Err(());
+    }
+    let response = response.unwrap();
+    if response.is_none() {
+      return Err(());
+    }
+    let response = response.unwrap();
+    let post_username = response.get("username").unwrap().as_str().unwrap();
+    let session_username = session.lock().await.username.clone();
+    if post_username != session_username {
+      return Err(());
+    }
+    db.public_market.delete_one(doc! {
+      "_id": bson::oid::ObjectId::parse_str(_id).unwrap()
+    }, None).await.unwrap();
+    return Ok(json!({
+      "type": "withdraw_market_post",
+      "status": 200,
+      "preserved": preserved
+    }));
+  }
+
   pub async fn get_market_posts_worker(request : &Json, db : Arc<Db>) -> Result<Json,()>
   {
     let preserved = request.get("preserved");
@@ -488,7 +528,7 @@ impl main_server::MainServer
     );
 
     let response = bot.send_message(prompt).await;
-    
+
     if response.is_err() {
       return Err(());
     }

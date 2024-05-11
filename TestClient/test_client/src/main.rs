@@ -12,7 +12,7 @@ fn main() {
                 io::stdin().read_line(&mut input).unwrap();
                 stream.write(input.as_bytes()).unwrap();
                 println!("Sent message: {}", input);
-                let mut buffer = [0; 1024];
+                let mut buffer = [0; 10240];
 
                 match stream.read(&mut buffer) {
                     Ok(n) => {

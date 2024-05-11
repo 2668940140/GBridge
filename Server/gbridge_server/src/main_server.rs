@@ -48,8 +48,8 @@ impl MainServer {
     adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>)
   {
     println!("Adviser connected");
-
-    let mut buf = [0; 1024];
+    const BUFSIZE : usize = 1024;
+    let mut buf = [0; BUFSIZE];
     loop {
         tokio::time::sleep(Duration::from_secs(1)).await;
         let mut adviser = adviser.lock().await;
@@ -65,6 +65,10 @@ impl MainServer {
         let n = n.unwrap();
         if n == 0 {
           break;
+        }
+        if n == BUFSIZE
+        {
+          panic!("Buffer overflow");
         }
         let received : Json = serde_json::from_slice(&buf[..n]).unwrap();
         let username = received.get("username").and_then(|x| x.as_str());
@@ -201,6 +205,15 @@ impl MainServer {
               if let Some(session) = session.clone()
               {
                 Self::submit_market_post_worker(&request_json, db.clone(), session).await
+              }
+              else {
+                Err(())
+              }
+            }
+            "withraw_market_post" => {
+              if let Some(session) = session.clone()
+              {
+                Self::withraw_market_post_worker(&request_json, db.clone(), session).await
               }
               else {
                 Err(())
