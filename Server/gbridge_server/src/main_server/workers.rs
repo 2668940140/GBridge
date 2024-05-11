@@ -488,6 +488,7 @@ impl main_server::MainServer
     );
 
     let response = bot.send_message(prompt).await;
+    
     if response.is_err() {
       return Err(());
     }
