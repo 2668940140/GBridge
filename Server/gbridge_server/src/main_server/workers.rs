@@ -265,6 +265,11 @@ impl main_server::MainServer
           vector.push("assets".to_string());
           session.lock().await.assets = value.as_f64();
         },
+        "authenticated"=>
+        {
+          vector.push("authenticated".to_string());
+          session.lock().await.authenticated = value.as_bool();
+        }
         _ => {panic!("Invalid item");}
       }
     }
@@ -335,6 +340,11 @@ impl main_server::MainServer
         {
           content["password"] = session.
           lock().await.password.as_ref().map(|s| json!(s)).unwrap_or(json!(null));
+        }
+        "authenticated"=>
+        {
+          content["authenticated"] = session.
+          lock().await.authenticated.map(|s| json!(s)).unwrap_or(json!(null));
         }
         _ => {panic!("Invalid item");}
       }
@@ -1035,5 +1045,6 @@ impl main_server::MainServer
       "preserved": preserved
     }));
   }
+
 
 }

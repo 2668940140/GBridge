@@ -23,6 +23,7 @@ pub struct Session
   pub assets : Option<f64>,
   pub email : Option<String>,
   pub password : Option<String>,
+  pub authenticated : Option<bool>,
   pub bot_conversation : Option<converse::Conversation>,
   pub adviser_conversation : Option<Json>,
   last_adviser_conversation_retrieve_time: Option<DateTime<Utc>>,
@@ -116,6 +117,7 @@ impl Session {
       bot_conversation: None,
       adviser_conversation: None,
       password: None,
+      authenticated: None,
       db: db,
       last_active_time: Utc::now(),
       last_adviser_conversation_retrieve_time: None,
@@ -335,6 +337,13 @@ impl Session {
             self.password = receive_item.unwrap().as_str().map(|s| s.to_string());
           }
         }
+        "authenticated"=>
+        {
+          let receive_item = received.get("authenticated");
+          if receive_item.is_some() {
+            self.authenticated = receive_item.unwrap().as_bool();
+          }
+        }
         _ => {panic!("Invalid item");}
       }
     }
@@ -380,6 +389,12 @@ impl Session {
             update.insert("assets", self.assets.as_ref().unwrap());
           }
         },
+        "authenticated"=>
+        {
+          if self.authenticated.is_some() {
+            update.insert("authenticated", self.authenticated.as_ref().unwrap());
+          }
+        }
         _ => {panic!("Invalid item");}
       }
     }
