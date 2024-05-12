@@ -4,6 +4,7 @@ mod database;
 mod session;
 mod workers;
 mod authenticator;
+mod adviser;
 
 use crate::ServerConfig;
 use chrono::{Datelike, Utc};
@@ -17,6 +18,7 @@ use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use chatgpt::client::ChatGPT;
+use adviser::Adviser;
 
 use self::authenticator::Authenticator;
 use self::database::Db;
@@ -30,7 +32,7 @@ pub struct MainServer
   listener : Option<TcpListener>,
   sessions: Arc<Mutex<session::Sessions>>,
   gptbot : Option<Arc<ChatGPT>>,
-  adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>,
+  adviser : Arc<Mutex<Adviser>>,
   authenticator : Arc<Mutex<authenticator::Authenticator>>
 }
 
@@ -48,20 +50,21 @@ impl MainServer {
 
   async fn handle_adviser_stream(db : Arc<Db>,
     sessions : Arc<Mutex<session::Sessions>>,
-    adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>)
+    adviser : Arc<Mutex<Adviser>>)
   {
     {
-    let response = json!(
-      {
-        "type": "adviser_login",
-        "status": 200
-      }
-    ).to_string();
-    let mut adviser = adviser.lock().await;
-    let adviser = adviser.as_mut().unwrap();
-    let mut adviser = adviser.lock().await;
-    adviser.write_all(response.as_bytes()).await.unwrap();
+      let response = json!(
+        {
+          "type": "adviser_login",
+          "status": 200
+        }
+      ).to_string();
+      let mut adviser = adviser.lock().await;
+      let adviser = adviser.stream.as_mut().unwrap();
+      let mut adviser = adviser.lock().await;
+      adviser.write_all(response.as_bytes()).await.unwrap();
     } 
+    adviser.lock().await.send_waiting_msg().await;
 
     println!("Adviser connected");
     const BUFSIZE : usize = 1024;
@@ -69,10 +72,10 @@ impl MainServer {
     loop {
         tokio::time::sleep(Duration::from_secs(1)).await;
         let mut adviser = adviser.lock().await;
-        if adviser.is_none() {
+        if adviser.stream.is_none() {
           break;
         }
-        let adviser = adviser.as_mut().unwrap();
+        let adviser = adviser.stream.as_mut().unwrap();
         let mut adviser = adviser.lock().await;
         let n = adviser.read(&mut buf).await;
         if n.is_err() {
@@ -133,7 +136,7 @@ impl MainServer {
   async fn handle_stream(mut stream : TcpStream, db : Arc<Db>,
     sessions : Arc<Mutex<session::Sessions>>,
     bot: Arc<ChatGPT>,
-    adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>,
+    adviser : Arc<Mutex<Adviser>>,
     adviser_key : String,
     authenticator : Arc<Mutex<Authenticator>>)
   {
@@ -276,7 +279,7 @@ impl MainServer {
                 let key = key.unwrap();
                 if key == adviser_key
                 {
-                  adviser.lock().await.replace(Arc::new(Mutex::new(stream)));
+                  adviser.lock().await.stream.replace(Arc::new(Mutex::new(stream)));
                   tokio::spawn(
                   Self::handle_adviser_stream(db.clone(), 
                   sessions.clone(), adviser.clone()));
@@ -459,7 +462,7 @@ impl MainServer {
       listener: None,
       sessions: Arc::new(Mutex::new(session::Sessions::new())),
       gptbot: None,
-      adviser : Arc::new(Mutex::new(None)),
+      adviser : Arc::new(Mutex::new(Adviser::new())),
       authenticator : Arc::new(Mutex::new(authenticator::Authenticator::new()))
     }
   }
