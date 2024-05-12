@@ -344,6 +344,7 @@ impl Session {
             self.authenticated = receive_item.unwrap().as_bool();
           }
         }
+        "username"=>{}
         _ => {panic!("Invalid item");}
       }
     }
