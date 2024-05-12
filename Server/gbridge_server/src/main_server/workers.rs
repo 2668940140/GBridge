@@ -500,19 +500,17 @@ impl main_server::MainServer
   pub async fn get_market_posts_worker(request : &Json, db : Arc<Db>) -> Result<Json,()>
   {
     let preserved = request.get("preserved");
-    let content = request.get("content").and_then(|f| f.as_str());
+    let content = request.get("content");
     let mut filter = doc! {};
     if content.is_some()
     {
       let content = content.unwrap();
-      let content_bytes = content.as_bytes();
-      let mut content_reader = std::io::Cursor::new(content_bytes);
-      let content = bson::Document::from_reader(&mut content_reader);
-      if content.is_err()
-      {
+      let result = bson::to_bson(content);
+      if result.is_err() {
         return Err(());
       }
-      filter = content.unwrap();
+      let result = result.unwrap();
+      filter = result.as_document().unwrap().clone();
     }
 
     let cursor = db.public_market.find(filter, None).await;
@@ -878,7 +876,7 @@ impl main_server::MainServer
       }
     }
     return Ok(json!({
-      "type": "get_user_posts",
+      "type": "get_user_deals",
       "status": 200,
       "preserved": preserved,
       "content": content
