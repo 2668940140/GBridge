@@ -1,6 +1,7 @@
-import React, { Component } from 'react';
-import { View, Text, StyleSheet, Button, ScrollView } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet,  ScrollView } from 'react-native';
 import BaseConInterface from './BaseConInterface';
+import { TwoButtonsInline } from '../components/MyButton';
 
 class ScoreInterface extends BaseConInterface {
     constructor(props) {
@@ -90,9 +91,9 @@ class ScoreInterface extends BaseConInterface {
         }
     }
 
-    handleAskForAdvice = () => {
+    handleAskForAdvice = (person) => {
         const { navigation } = this.props;
-        navigation.navigate("Chat");
+        navigation.navigate("Chat", {person: person});
     }
 
     render() {
@@ -113,7 +114,14 @@ class ScoreInterface extends BaseConInterface {
                     <Text style={styles.suggestionTitle}>Evaluation from bot: </Text>
                     <Text style={styles.suggestion}>{suggestion}</Text>
                 </ScrollView>
-                <Button title="Ask for Advice" onPress={this.handleAskForAdvice} />
+                <TwoButtonsInline
+                    title1="Ask GPT"
+                    title2="Ask professional"
+                    onPress1={() => this.handleAskForAdvice("GPT")}
+                    onPress2={() => this.handleAskForAdvice("PROFESSIONAL")}
+                    disable1={false}
+                    disable2={false}
+                />
             </View>
         );
     }

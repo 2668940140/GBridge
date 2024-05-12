@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import BaseConComponent from './BaseConComponent';
+import BaseComponent from './BaseComponent';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 
-class ProfileBoard extends BaseConComponent{
+class ProfileBoard extends BaseComponent{
     constructor(props) {
         super(props);
         this.state = {
@@ -15,34 +15,12 @@ class ProfileBoard extends BaseConComponent{
     }
 
     componentDidMount() {
-        this.establishConnection().then(() => {
-            this.establishConnectionSuccess();
-            username = gUsername;
-        this.setState({ username: username , loading: true});
-        this.transferLayer.sendRequest({
-            type: "get_user_info",
-            content: [
-                "portrait",
-            ],
-            extra: null
-        }, this.handleProfileResponse);
-    }).catch(() => {
-        this.establishConnectionFailure();
-    });        
-    }
-
-    handleProfileResponse = (response) => {
-        if(response.type !== "get_user_info") return;
-        if (response.success) {
-            this.setState({
-                verified: false,
-                userIcon: response.content.portrait,
-                loading: false
-            });
-        } else {
-            this.displayErrorMessage("Failed to retrieve user data.");
-            // this.setState({ loading: false });
-        }
+        this.setState({ username: gUsername ,
+            userIcon: gUserIcon,
+            verified: gAuthenticated === 'true',
+            loading: true}, () => {
+                this.setState({ loading: false });
+            });       
     }
 
     render(){

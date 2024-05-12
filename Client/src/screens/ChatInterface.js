@@ -1,102 +1,200 @@
-import React, { Component } from 'react';
-import { View, Text, TextInput, StyleSheet, Button, FlatList, Image, KeyboardAvoidingView, ScrollView } from 'react-native';
+import React from 'react';
+import { View, Text, TextInput, StyleSheet, FlatList, Image, KeyboardAvoidingView, AppState } from 'react-native';
 import BaseConInterface from './BaseConInterface';
+import { MyButton } from '../components/MyButton';
 import DefaultUserIcon from '../assets/default_user_icon.png';
+import DefaultOppIcon from '../assets/default_opp_icon.png';
 
 class ChatInterface extends BaseConInterface {
     constructor(props) {
         super(props);
+        this.opp = this.props.route.params.person === "GPT" ? "bot" : "advisor";
         this.state = {
             messages: [
-                { id: 1, text: 'Hello', time: '10:00', userIcon: DefaultUserIcon },
-                { id: 2, text: 'Hi', time: '10:01', userIcon: DefaultUserIcon },
+                { id: 1, text: 'Hello', time: '10:00'},
+                { id: 2, text: 'Hi', time: '10:01'},
             ],
             inputText: '',
+            userIcon: null,
+            responseIcon: null,
+            loading: true,
+            isLoading: false,
+            appState: AppState.currentState
         };
+        this.intervalId = null;
     }
 
-    sendMessage = () => {
-        const { inputText } = this.state;
-    
-        if (!inputText) {
-            return;
+    handleAppStateChange = (nextAppState) => {
+        if (this.state.appState.match(/inactive|background/) && nextAppState === 'active') {
+          console.log('App has come to the foreground!');
+          this.startFetchingMessages();
+        } else if (nextAppState.match(/inactive|background/)) {
+          console.log('App has gone to the background');
+          this.stopFetchingMessages();
         }
+        this.setState({ appState: nextAppState });
+    };
+
+    startFetchingMessages = () => {
+        this.fetchAdvisorMessages();
+        this.intervalId = setInterval(this.fetchAdvisorMessages, 5000);
+      };
     
-        const message = {
-            type: 'send_message_to_bot',
-            content: inputText,
-            preserved: null, // Add any preserved data if needed
+    stopFetchingMessages = () => {
+        clearInterval(this.intervalId);
+    };
+
+    componentWillUnmount() {
+        super.componentWillUnmount();
+        AppState.removeEventListener('change', this.handleAppStateChange);
+        this.stopFetchingMessages();
+    }
+
+    componentDidMount() {
+        AppState.addEventListener('change', this.handleAppStateChange);
+        this.establishConnection().then(() => {
+            this.setState({ userIcon, gUserIcon });
+            this.establishConnectionSuccess();
+            this.startFetchingMessages();
+        }
+        ).catch(() => {
+            this.establishConnectionFailure();
+        });
+    }
+
+    fetchAdvisorMessages = () => {
+        if(this.opp === "bot" || this.state.isLoading || this.state.loading) return;
+        this.transferLayer.sendRequest({
+            type: "get_adviser_conversation"
+        }, (response) => {
+            if (response.success) {
+                let messages = response.content.map((message, index) => {
+                    timeAll = new Date(message.time);
+                    return {
+                        id: index + 1,
+                        date: timeAll.toLocaleDateString(),
+                        time: timeAll.toLocaleTimeString(),
+                        text: message.message,
+                        user: message.username === gUsername ? gUsername : message.username
+                    };
+                });
+                
+                this.setState({ messages: messages });
+            }
+            else {
+                this.displayErrorMessage("Failed to fetch messages.");
+            }
+        });
+    };
+
+    sendMessage = () => {
+        const { inputText, messages } = this.state;
+        currentTime = new Date();
+        let newMessage = { 
+            id: messages.length + 1,
+            date: currentTime.toLocaleDateString(),
+            time: currentTime.toLocaleTimeString(),
+            text: inputText,
+            user: gUsername
         };
-    
-        console.log("send request");
-        this.transferLayer.sendRequest(message, this.handleSendMessageResponse);
     
         // Add the new message to the state
         this.setState(prevState => ({
-            messages: [...prevState.messages, { id: Date.now(), text: inputText, time: new Date().toLocaleTimeString(), userIcon: DefaultUserIcon }],
-            inputText: '', // Clear the input box
-        }));
-    };
-    
-    handleSendMessageResponse = (response) => {
-        if (response.status !== 200) {
-            console.error('Failed to send message:', response.error);
-            return;
-        }
-    
-        // Handle the response from the bot
-        const botMessage = {
-            id: Date.now(),
-            text: response.content,
-            time: new Date().toLocaleTimeString(),
-            userIcon: DefaultUserIcon, // Replace with the bot's icon if available
-        };
-    
-        // Add the bot's message to the state
-        this.setState(prevState => ({
-            messages: [...prevState.messages, botMessage],
-        }));
-    };
-
-
-    renderMessageItem = ({ item }) => (
-        <View style={styles.messageItem}>
-            <Image source={item.userIcon} style={styles.userIcon} />
-            <View style={styles.messageContent}>
-                <Text style={styles.messageText}>{item.text}</Text>
-                <Text style={styles.messageTime}>{item.time}</Text>
-            </View>
-        </View>
-    );
-
-    handleSend = () => {
-        // Add logic to send the message
-        const { inputText, messages } = this.state;
-        const newMessage = {
-            id: messages.length + 1,
-            text: inputText,
-            time: new Date().toLocaleTimeString(),
-            userIcon: DefaultUserIcon,
-        };
-        this.setState(prevState => ({
             messages: [...prevState.messages, newMessage],
-            inputText: '',
+            inputText: '', // Clear the input box
+            isLoading: true
         }));
+
+        if(this.opp === "bot") this.sendToBot();
+        else this.sendToAdvisor();
+    };
+
+    sendToAdvisor = () => {
+        this.transferLayer.sendRequest({
+            type: "send_message_to_adviser",
+            content: inputText
+        }, this.handleAdvisorResponse);
+    }
+
+    handleAdvisorResponse = (response) => {
+        this.setState({ isLoading: false });
+        if (response.success) {
+            console.log("sent message to advisor!");
+        } else {
+            this.displayErrorMessage("Failed to send message.");
+        }
+    };
+
+    sendToBot = () => {
+        this.transferLayer.sendRequest({
+            type: "send_message_to_bot",
+            content: inputText
+        }, this.handleBotResponse);
+    }
+    
+    handleBotResponse = (response) => {
+        this.setState({ isLoading: false });
+        if (response.success) {
+            const { messages } = this.state;
+            currentTime = new Date();
+            const newResponse = {
+                id: messages.length + 1,
+                date: currentTime.toLocaleDateString(),
+                time: currentTime.toLocaleTimeString(),
+                text: response.content,
+                user: this.opp
+            };
+
+            this.setState(prevState => ({
+                messages: [...prevState.messages, newResponse]
+            }));
+        } else {
+            this.displayErrorMessage("Failed to send message.");
+        }
+    };
+
+
+    renderMessageItem = ({ item }) => {
+        const isUser = item.type !== this.opp;
+        let icon = isUser ? this.userIcon : this.responseIcon;
+        if(icon === null) icon = isUser ? DefaultUserIcon : DefaultOppIcon;
+        else icon = { uri: icon };
+        currentDate = new Date().toLocaleDateString();
+        return (
+            <>
+            <Text style={styles.timeText}>
+                    {item.date != currentDate && (item.data + " ")}
+                    {item.time}
+            </Text>
+            <Text style={[
+                styles.infoText, isUser ? styles.userMessage : styles.responseMessage]}>
+                    {item.user === gUsername ? "You" : item.user}
+            </Text>
+            <View style={[
+                styles.messageContainer, isUser ? styles.userMessage : styles.responseMessage]}>
+                <Image source={icon} style={styles.avatar} />
+                <Text style={styles.messageText}>{item.text}</Text>
+            </View>
+            </>
+        );
     };
 
     render() {
-        const { messages, inputText } = this.state;
+        const { messages, inputText, loading, isLoading } = this.state;
+        if(loading) return super.render();
 
         return (
-            <ScrollView style={styles.container}>
+            <KeyboardAvoidingView style={styles.container} behavior="padding">
+                <Text style={styles.title}>{this.props.chatType} Chat</Text>
                 <FlatList
                     data={messages}
                     renderItem={this.renderMessageItem}
                     keyExtractor={item => item.id.toString()}
                     contentContainerStyle={styles.messageList}
+                    ListEmptyComponent={<Text style={{ textAlign: 'center', fontSize:30 }}>No messages</Text>}  
                     inverted
                 />
-                <KeyboardAvoidingView behavior="padding" style={styles.inputContainer}>
+                <View style={styles.inputContainer}>
                     <TextInput
                         style={styles.input}
                         placeholder="Type a message..."
@@ -104,15 +202,68 @@ class ChatInterface extends BaseConInterface {
                         value={inputText}
                         onChangeText={text => this.setState({ inputText: text })}
                     />
-                    <Button title="Send" onPress={this.sendMessage} />
-                </KeyboardAvoidingView>
-            </ScrollView>
+                    {isLoading ? <ActivityIndicator size="small" color="#0000ff" /> : <MyButton title="Send" onPress={this.sendMessage} disable={!inputText.trim()} />}
+                </View>
+            </KeyboardAvoidingView>
         );
     }
 }
 
 const styles = StyleSheet.create({
-    // Add your styles here
+    container: {
+        flex: 1,
+        paddingTop: 50
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 10
+    },
+    chatBox: {
+        flex: 1,
+    },
+    messageContainer: {
+        flexDirection: 'row',
+        padding: 10,
+        alignItems: 'center'
+    },
+    userMessage: {
+        justifyContent: 'flex-end',
+        marginLeft: 50
+    },
+    responseMessage: {
+        justifyContent: 'flex-start',
+        marginRight: 50
+    },
+    avatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        marginRight: 10
+    },
+    messageText: {
+        fontSize: 16
+    },
+    infoText: {
+        fontSize: 10,
+    },
+    timeText: {
+        fontSize: 10,
+        textAlign: 'center'
+    },
+    inputContainer: {
+        flexDirection: 'row',
+        padding: 10
+    },
+    input: {
+        flex: 1,
+        marginRight: 10,
+        borderWidth: 1,
+        borderColor: 'gray',
+        borderRadius: 5,
+        padding: 10
+    }
 });
 
 export default ChatInterface;

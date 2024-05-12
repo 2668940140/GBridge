@@ -1,7 +1,7 @@
 import React from 'react';
 import {Button, Text, View, StyleSheet } from 'react-native';
 import ProfileBoard from '../components/ProfileBoard';
-import LoanRepaymentList from '../components/LoanRepaymentList';
+import NotificationBoard from '../components/NotificationBoard';
 import ScoreBoard from '../components/ScoreBoard';
 import MarketComponent from '../components/MarketComponent';
 import BaseInterface from './BaseInterface';
@@ -9,7 +9,11 @@ import BaseInterface from './BaseInterface';
 class HomeScreen extends BaseInterface {
     constructor(props) {
         super(props);
+        this.state = {
+            notificationVisible: false,
+        };
         this.marketRef = React.createRef();
+        this.notificationRef = React.createRef();
     }
 
     componentDidMount() {
@@ -17,6 +21,9 @@ class HomeScreen extends BaseInterface {
           if (this.marketRef && this.marketRef.current) {
             this.marketRef.current.fetchItems();
           }
+            if (this.notificationRef && this.notificationRef.current) {
+                this.notificationRef.current.fetchMessages();
+            }
         });
     }
 
@@ -33,9 +40,13 @@ class HomeScreen extends BaseInterface {
                     <ProfileBoard navigation={navigation} targetScreen={'PersonalPage'} />
                     <ScoreBoard navigation={navigation} targetScreen={'Score'}/>
                 </View>
-                
                 <MarketComponent navigation={navigation} ref={this.marketRef}/>
-                <Button title="Chat" onPress={() => navigation.navigate('ChatInterface')} />
+                {this.state.notificationVisible && (
+                    <NotificationBoard ref={this.notificationRef}
+                        navigation={navigation} modalVisible={this.state.notificationVisible}
+                        onRequestClose={() => this.setState({ notificationVisible: false })}
+                    />
+                )}
             </View>
         );
     }

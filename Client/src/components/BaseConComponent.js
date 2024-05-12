@@ -47,7 +47,7 @@ export default class BaseConComponent extends BaseComponent {
                 content:{
                     password: gPassword,
                     username: gUsername,
-                    loginType: "UP"
+                    loginType: "username_password"
                 },
                 extra: null
             }, (response) => {

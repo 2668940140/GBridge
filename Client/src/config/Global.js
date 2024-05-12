@@ -1,3 +1,4 @@
+import { gl } from 'date-fns/locale';
 import config from './config.json';
 
 global.port = config.server.port;
@@ -10,3 +11,5 @@ global.gUsername = '';
 global.gPassword = '';
 global.sessionToken = '';
 global.gSaveAccount = 'false';
+global.gUserIcon = null;
+global.gAuthenticated = 'false';

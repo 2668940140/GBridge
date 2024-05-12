@@ -150,9 +150,6 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(0, 123, 255, 0.8)',
         overflow: 'hidden',
     },
-    picker: {
-        color: 'black',
-    },
     item: {
         fontSize: 18,
         height: 44,

@@ -36,7 +36,6 @@ class PersonalInfo extends BaseConInterface {
         this.transferLayer.sendRequest({
             type: "get_user_info",
             content: [
-                "portrait",
                 "email",
                 "cash",
                 "income",
@@ -50,12 +49,14 @@ class PersonalInfo extends BaseConInterface {
     
     handleUserDataResponse = (response) => {
         const username = gUsername;
+        const userIcon = gUserIcon;
+        const verified = gAuthenticated === 'true';
         if (response.success) {
-            const { email, portrait, verified, cash, income, expenditure, debt, assets} = response.content;
+            const { email, cash, income, expenditure, debt, assets} = response.content;
             this.setState({
                 username,
                 email,
-                userIcon: portrait,
+                userIcon,
                 verified,
                 cash,
                 income,

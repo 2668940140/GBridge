@@ -51,19 +51,19 @@ class LoginInterface extends BaseConInterface {
         let type = "";
         if(activeTab === 'email' && activeVerification === 'verification code'
             && email && verificationCode) {
-            type = "EV";
+            type = "email_verificationcode";
             }
         else if(activeTab === 'email' && activeVerification === 'password'
             && email && password) {
-            type = "EP";
+            type = "email_password";
             }
         else if(activeTab === 'username' && activeVerification === 'verification code'
             && username && verificationCode) {
-            type = "UV";
+            type = "username_verificationcode";
             }
         else if(activeTab === 'username' && activeVerification === 'password'
             && username && password) {
-            type = "UP";
+            type = "username_password";
             }
         
         if (type !== "") {
@@ -73,7 +73,7 @@ class LoginInterface extends BaseConInterface {
                 content:{
                     email: email,
                     password: password,
-                    verificationCode: verificationCode,
+                    verificationcode: verificationCode,
                     username: username,
                     loginType: type
                 },
@@ -87,21 +87,40 @@ class LoginInterface extends BaseConInterface {
     handleServerResponse = async (response) => {
         this.setState({ isLoading: false });  // Stop loading when response is received
         if (response.success) {
-            gUsername = this.state.username;
-            gPassword = this.state.password;
-            gSaveAccount = this.state.saveAccount;
-            await AsynSave('saveAccount', gSaveAccount);
-            if(gSaveAccount === 'true') {
-                await AsynSave('username', gUsername);
-                await AsynSave('password', gPassword);
-            }
-            this.displaySuccessMessage("Login Successful");
-            resetNavigator(this.props.navigation, 'Home');  // Navigate to Home screen
+            await this.updateUserInfo();
         } else {
             this.displayErrorMessage("Invalid " + this.state.activeTab + " or " + this.state.activeVerification);
         }
     };   
     
+    updateUserInfo = async () => {
+        this.transferLayer.sendRequest({
+            type: "get_user_info",
+            content: [
+                "portrait",
+                "username",
+                "password",
+                "authenticated"
+            ],
+            extra: null
+        }, async (response) => {
+            if(response.success) {
+                gUserIcon = response.content.portrait;
+                gUsername = response.content.username;
+                gPassword = response.content.password;
+                gAuthenticated = response.content.authenticated ? 'true' : 'false';
+                gSaveAccount = this.state.saveAccount;
+                await AsynSave('saveAccount', gSaveAccount);
+                if(gSaveAccount === 'true') {
+                    await AsynSave('username', gUsername);
+                    await AsynSave('password', gPassword);
+                }
+                this.displaySuccessMessage("Login Successful");
+                resetNavigator(this.props.navigation, 'Home'); 
+            }
+        });
+    };
+
     sendVerificationCode = () => {
         const email = this.state.emailName + '@' + this.state.emailDomain;
         const {username, activeTab} = this.state;
@@ -111,14 +130,16 @@ class LoginInterface extends BaseConInterface {
         if (email && activeTab === 'email' ||
             username && activeTab === 'username'
         ) {
+            content = {};
+            if(activeTab === 'email') {
+                content.email = email;
+            } else {
+                content.username = username;
+            };
             this.setState({ isLoading: true });
             this.transferLayer.sendRequest({
-                type: "sendVerification",
-                content: {
-                    email: email,
-                    username: username,
-                    type: activeTab
-                },
+                type: "get_verificationcode",
+                content: content,
                 extra: null
             }, this.handleVerificationResponse);
         } else {
@@ -130,7 +151,7 @@ class LoginInterface extends BaseConInterface {
         this.setState({ isLoading: false });
         if (response.success) {
             this.setState({ isCodeSent: true });
-            this.displaySuccessMessage("Verification code sent. Please check your SMS messages.");
+            this.displaySuccessMessage("Verification code sent. Please check your mail box.");
         } else {
             this.displayErrorMessage("Failed to send verification code. Please try again.");
         }

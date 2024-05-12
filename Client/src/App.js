@@ -9,7 +9,6 @@ import WelcomeInterface from './screens/WelcomeInterface';
 import PostInterface from './screens/PostInterface';
 import PersonalPage from './screens/PersonalPage';
 import PersonalSettings from './screens/PersonalSettings';
-import MatchInterface from './screens/MatchInterface';
 import RepaymentInterface from './screens/RepaymentInterface';
 import ScoreInterface from './screens/ScoreInterface';
 import VerificationInterface from './screens/VerificationInterface';
@@ -101,7 +100,6 @@ const clearAuthenticationData = async () => {
         <Stack.Screen name="Post" component={PostInterface} />
         <Stack.Screen name="PersonalPage" component={PersonalPage} />
         <Stack.Screen name="PersonalSettings" component={PersonalSettings} />
-        <Stack.Screen name="Match" component={MatchInterface} />
         <Stack.Screen name="Repay" component={RepaymentInterface} />
         <Stack.Screen name="Score" component={ScoreInterface} />
         <Stack.Screen name="Verification" component={VerificationInterface} />
