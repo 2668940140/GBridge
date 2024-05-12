@@ -50,6 +50,19 @@ impl MainServer {
     sessions : Arc<Mutex<session::Sessions>>,
     adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>)
   {
+    {
+    let response = json!(
+      {
+        "type": "adviser_login",
+        "status": 200
+      }
+    ).to_string();
+    let mut adviser = adviser.lock().await;
+    let adviser = adviser.as_mut().unwrap();
+    let mut adviser = adviser.lock().await;
+    adviser.write_all(response.as_bytes()).await.unwrap();
+    } 
+
     println!("Adviser connected");
     const BUFSIZE : usize = 1024;
     let mut buf = [0; BUFSIZE];
