@@ -8,11 +8,11 @@ const RequestDetail = ({ visible, onRequestClose, request, onActionPress }) => {
             return (
                 <SingleButton title="Delete" onPress={() => onActionPress('delete')} disable={false}/>
             );
-        }else if(request.post_type === 'borrow' && request.status === 'Deal') {
+        }else if(request.borrower_username === gUsername && request.status === 'Deal') {
             return (
                 <SingleButton title="Repay" onPress={() => onActionPress('repay')} disable={false}/>
             );
-        } else if(request.post_type === 'lend' && request.status === 'Deal'){ 
+        } else if(request.lender_username === gUsername && request.status === 'Deal'){ 
             return (
                 <SingleButton title="Remind" onPress={() => onActionPress('remind')} disable={false}/>
             );

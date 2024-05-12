@@ -17,7 +17,7 @@ class RepaymentInterface extends BaseConInterface {
     }
 
     initiatePaymentProcess = () => {
-        const { selectedPaymentMethod } = this.state;
+        const { selectedPaymentMethod, loanDetail } = this.state;
         this.setState({ isLoading: true });
         this.transferLayer.sendRequest({
             type: "complete_deal",
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20
+        padding: 20,
     },
     pickerContainer: {
         height: 50,
@@ -101,11 +101,14 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(0, 123, 255, 0.8)',
         overflow: 'hidden',
+        borderWidth: 1,
+        width: '100%',
+        marginHorizontal: 20,
     },
     info: {
         fontSize: 18,
         marginBottom: 10,
-        textAlign: 'center'
+        textAlign: 'center',
     }
 });
 

@@ -5,127 +5,13 @@ import { MyButton } from '../components/MyButton';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 import DefaultOppIcon from '../assets/default_opp_icon.png';
 
-class ChatInterface extends BaseConInterface {
+class BotChatInterface extends ChatInterface{
     constructor(props) {
         super(props);
-        this.opp = this.props.route.params.person === "GPT" ? "bot" : "advisor";
-        this.state = {
-            messages: [
-                { id: 1, text: 'Hello', time: '10:00'},
-                { id: 2, text: 'Hi', time: '10:01'},
-            ],
-            inputText: '',
-            userIcon: null,
-            responseIcon: null,
-            loading: true,
-            isLoading: false,
-            appState: AppState.currentState
-        };
-        this.intervalId = null;
+        this.opp = "bot";
     }
 
-    handleAppStateChange = (nextAppState) => {
-        if (this.state.appState.match(/inactive|background/) && nextAppState === 'active') {
-          console.log('App has come to the foreground!');
-          this.startFetchingMessages();
-        } else if (nextAppState.match(/inactive|background/)) {
-          console.log('App has gone to the background');
-          this.stopFetchingMessages();
-        }
-        this.setState({ appState: nextAppState });
-    };
-
-    startFetchingMessages = () => {
-        this.fetchAdvisorMessages();
-        this.intervalId = setInterval(this.fetchAdvisorMessages, 5000);
-      };
-    
-    stopFetchingMessages = () => {
-        clearInterval(this.intervalId);
-    };
-
-    componentWillUnmount() {
-        super.componentWillUnmount();
-        AppState.removeEventListener('change', this.handleAppStateChange);
-        this.stopFetchingMessages();
-    }
-
-    componentDidMount() {
-        AppState.addEventListener('change', this.handleAppStateChange);
-        this.establishConnection().then(() => {
-            this.setState({ userIcon, gUserIcon });
-            this.establishConnectionSuccess();
-            this.startFetchingMessages();
-        }
-        ).catch(() => {
-            this.establishConnectionFailure();
-        });
-    }
-
-    fetchAdvisorMessages = () => {
-        if(this.opp === "bot" || this.state.isLoading || this.state.loading) return;
-        this.transferLayer.sendRequest({
-            type: "get_adviser_conversation"
-        }, (response) => {
-            if (response.success) {
-                let messages = response.content.map((message, index) => {
-                    timeAll = new Date(message.time);
-                    return {
-                        id: index + 1,
-                        date: timeAll.toLocaleDateString(),
-                        time: timeAll.toLocaleTimeString(),
-                        text: message.message,
-                        user: message.username === gUsername ? gUsername : message.username
-                    };
-                });
-                
-                this.setState({ messages: messages });
-            }
-            else {
-                this.displayErrorMessage("Failed to fetch messages.");
-            }
-        });
-    };
-
-    sendMessage = () => {
-        const { inputText, messages } = this.state;
-        currentTime = new Date();
-        let newMessage = { 
-            id: messages.length + 1,
-            date: currentTime.toLocaleDateString(),
-            time: currentTime.toLocaleTimeString(),
-            text: inputText,
-            user: gUsername
-        };
-    
-        // Add the new message to the state
-        this.setState(prevState => ({
-            messages: [...prevState.messages, newMessage],
-            inputText: '', // Clear the input box
-            isLoading: true
-        }));
-
-        if(this.opp === "bot") this.sendToBot();
-        else this.sendToAdvisor();
-    };
-
-    sendToAdvisor = () => {
-        this.transferLayer.sendRequest({
-            type: "send_message_to_adviser",
-            content: inputText
-        }, this.handleAdvisorResponse);
-    }
-
-    handleAdvisorResponse = (response) => {
-        this.setState({ isLoading: false });
-        if (response.success) {
-            console.log("sent message to advisor!");
-        } else {
-            this.displayErrorMessage("Failed to send message.");
-        }
-    };
-
-    sendToBot = () => {
+    forwardMessage = (inputText) => {
         this.transferLayer.sendRequest({
             type: "send_message_to_bot",
             content: inputText
@@ -152,10 +38,140 @@ class ChatInterface extends BaseConInterface {
             this.displayErrorMessage("Failed to send message.");
         }
     };
+}
 
+class AdviserChatInterface extends ChatInterface {
+    constructor(props) {
+        super(props);
+        this.opp = "adviser";
+        this.intervalId = null;
+    }
+
+    startApp= () => {
+        this.fetchAdvisorMessages();
+        this.intervalId = setInterval(this.fetchAdvisorMessages, 5000);
+      };
+    
+    stopApp = () => {
+        clearInterval(this.intervalId);
+    };
+
+    fetchAdvisorMessages = () => {
+        if(this.opp === "bot" || this.state.isLoading || this.state.loading) return;
+        this.transferLayer.sendRequest({
+            type: "get_adviser_conversation"
+        }, (response) => {
+            if (response.success) {
+                let messages = response.content.map((message, index) => {
+                    timeAll = new Date(message.time);
+                    return {
+                        id: index + 1,
+                        date: timeAll.toLocaleDateString(),
+                        time: timeAll.toLocaleTimeString(),
+                        text: message.message,
+                        user: message.username === gUsername ? gUsername : message.username
+                    };
+                });
+                
+                this.setState({ messages: messages });
+            }
+            else {
+                this.displayErrorMessage("Failed to fetch messages.");
+            }
+        });
+    };
+
+    forwardMessage = (inputText) => {
+        this.transferLayer.sendRequest({
+            type: "send_message_to_adviser",
+            content: inputText
+        }, this.handleAdvisorResponse);
+    }
+
+    handleAdvisorResponse = (response) => {
+        this.setState({ isLoading: false });
+        if (response.success) {
+            console.log("sent message to advisor!");
+        } else {
+            this.displayErrorMessage("Failed to send message.");
+        }
+    };
+}
+
+class ChatInterface extends BaseConInterface {
+    constructor(props) {
+        super(props);
+        this.state = {
+            messages: [
+                { id: 1, text: 'Hello', time: '10:00'},
+                { id: 2, text: 'Hi', time: '10:01'},
+            ],
+            inputText: '',
+            userIcon: null,
+            responseIcon: null,
+            loading: true,
+            isLoading: false,
+            appState: AppState.currentState
+        };
+        this.opp = "opp";
+    }
+
+    handleAppStateChange = (nextAppState) => {
+        if (this.state.appState.match(/inactive|background/) && nextAppState === 'active') {
+          console.log('App has come to the foreground!');
+          if(this.startApp)
+            this.startApp();
+        } else if (nextAppState.match(/inactive|background/)) {
+          console.log('App has gone to the background');
+          if(this.stopApp)
+            this.stopApp();
+        }
+        this.setState({ appState: nextAppState });
+    };
+
+    componentWillUnmount() {
+        super.componentWillUnmount();
+        AppState.removeEventListener('change', this.handleAppStateChange);
+        if(this.stopApp)
+            this.stopApp();
+    }
+
+    componentDidMount() {
+        AppState.addEventListener('change', this.handleAppStateChange);
+        this.establishConnection().then(() => {
+            this.setState({ userIcon, gUserIcon });
+            this.establishConnectionSuccess();
+            if(this.startApp)
+                this.startApp();
+        }
+        ).catch(() => {
+            this.establishConnectionFailure();
+        });
+    }
+
+    sendMessage = () => {
+        const { inputText, messages } = this.state;
+        currentTime = new Date();
+        let newMessage = { 
+            id: messages.length + 1,
+            date: currentTime.toLocaleDateString(),
+            time: currentTime.toLocaleTimeString(),
+            text: inputText,
+            user: gUsername
+        };
+    
+        // Add the new message to the state
+        this.setState(prevState => ({
+            messages: [...prevState.messages, newMessage],
+            inputText: '', // Clear the input box
+            isLoading: true
+        }));
+
+        this.forwardMessage(inputText);
+    };
 
     renderMessageItem = ({ item }) => {
-        const isUser = item.type !== this.opp;
+        const isUser = item.user !== this.opp;
         let icon = isUser ? this.userIcon : this.responseIcon;
         if(icon === null) icon = isUser ? DefaultUserIcon : DefaultOppIcon;
         else icon = { uri: icon };
@@ -163,7 +179,7 @@ class ChatInterface extends BaseConInterface {
         return (
             <>
             <Text style={styles.timeText}>
-                    {item.date != currentDate && (item.data + " ")}
+                    {item.date != currentDate && (item.date + " ")}
                     {item.time}
             </Text>
             <Text style={[
@@ -266,4 +282,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default ChatInterface;
+export { BotChatInterface, AdviserChatInterface};

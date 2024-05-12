@@ -44,7 +44,8 @@ class MarketComponent extends BaseConComponent {
         }
         this.setState({ items: [] });
         const { selectedFilters, type } = this.state;
-        content = {
+        content = selectedFilters.length === 0 ? { post_type: type === 'loan' ? 'lend' : 'borrow' } :
+        {
             $and:[ 
                 { post_type: type === 'loan' ? 'lend' : 'borrow' },
                 { $or: selectedFilters.map(filter => ({ method: filter })) }
@@ -111,7 +112,7 @@ class MarketComponent extends BaseConComponent {
 
     renderItem = ({ item }) => (
         <TouchableOpacity style={styles.itemContainer} onPress={() => this.handleItemPress(item)}>
-            <Text>{item.poster} - {item.score.toFix(2)} - {item.interest} - {item.amount} - {item.period}</Text>
+            <Text>{item.poster} - {item.score} - {item.interest} - {item.amount} - {item.period}</Text>
         </TouchableOpacity>
     );
 

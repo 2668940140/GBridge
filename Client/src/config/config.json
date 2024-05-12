@@ -16,5 +16,9 @@
         "compressImageMaxWidth" : 64,
         "compressImageMaxHeight" : 64,
         "compressImageQuality" : 0.8
+    },
+    "adviser":{
+        "type":"adviser_login",
+        "key":"DAQqFMg@Fb5mHqA"
     }
 }

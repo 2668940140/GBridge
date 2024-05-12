@@ -26,9 +26,9 @@ class VerificationInterface extends BaseConInterface {
 
         this.transferLayer.sendRequest({
             type: "update_user_info",
-            content: [
-                "authenticated",
-            ],
+            content: {
+                "authenticated":true
+            },
             extra: {
                 name: realName,
                 idNumber: idNumber,
@@ -70,9 +70,11 @@ class VerificationInterface extends BaseConInterface {
                     keyboardType='numeric'
                     onChangeText={text => this.setState({ idNumber: text })}
                 />
-                <SingleButton title="Submit" onPress={this.uploadIDDocuments} />
+                <View style={styles.buttonContainer}>
+                    <SingleButton title="Submit" onPress={this.uploadIDDocuments} />
+                    <SingleButton title="Back" onPress={this.handleBackPress} />
+                </View>
                 <Text>{this.state.verificationStatus}</Text>
-                <SingleButton title="Back" onPress={this.handleBackPress} />
             </View>
         );
     }
@@ -93,8 +95,10 @@ const styles = StyleSheet.create({
         marginTop: 10,
         paddingHorizontal: 10,
     },
-    button: {
-        marginVertical: 10,
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: '100%',
     },
 });
 

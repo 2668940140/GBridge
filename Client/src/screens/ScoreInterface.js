@@ -91,11 +91,6 @@ class ScoreInterface extends BaseConInterface {
         }
     }
 
-    handleAskForAdvice = (person) => {
-        const { navigation } = this.props;
-        navigation.navigate("Chat", {person: person});
-    }
-
     render() {
         const { score, info, suggestion, loadingInfo, loadingScore,loadingSuggestions } = this.state;
         const { cash, income, expenditure, debt, assets } = info || {};
@@ -117,8 +112,8 @@ class ScoreInterface extends BaseConInterface {
                 <TwoButtonsInline
                     title1="Ask GPT"
                     title2="Ask professional"
-                    onPress1={() => this.handleAskForAdvice("GPT")}
-                    onPress2={() => this.handleAskForAdvice("PROFESSIONAL")}
+                    onPress1={() => this.props.navigation.navigate('BotChat')}
+                    onPress2={() => this.props.navigation.navigate('AdviserChat')}
                     disable1={false}
                     disable2={false}
                 />

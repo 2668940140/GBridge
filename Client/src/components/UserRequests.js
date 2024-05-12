@@ -84,9 +84,11 @@ class UserRequests extends BaseConComponent {
                                     status : 'Deal'
                                 }
                             })
-                            const loanDeals = items.filter(req => req.post_type === 'borrow');
-                            const investmentDeals =items.filter(req => req.post_type === 'lend');
-                            this.setState({ deals: { loan: loanDeals, invest: investmentDeals }}, () => { 
+                            const loanDeals = items.filter(req => req.borrower_username === gUsername);
+                            const investmentDeals =items.filter(req => req.lender_username === gUsername);
+                            this.setState({ deals: { loan: loanDeals, invest: investmentDeals }}, () => {
+                                console.log('Loan deals fetched', loanDeals);
+                                console.log('Investment deals fetched', investmentDeals); 
                                 this.setState({ loading: false });
                                 console.log('Fetched posts and deals');
                             });

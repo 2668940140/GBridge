@@ -8,6 +8,7 @@ class TransferLayer {
         this.maxRetries = maxRetries;
         this.retryDelay = retryDelay;
         this.isConnected = false;
+        this.onResponseReceived = null;
     }
 
     checkConnection() {
@@ -65,12 +66,14 @@ class TransferLayer {
     onSessionExpired = null;
 
     setupResponseHandler() {
+        let dataBuffer = '';
         this.socket.on('data', async (data) => {
-            console.log('Received:', data);
+            dataBuffer += data.toString();
             let jsonResponse;
             try {
-                jsonResponse = JSON.parse(data);
+                jsonResponse = JSON.parse(dataBuffer);
                 console.log('Received:', jsonResponse);
+                dataBuffer = ''; // Clear the buffer after parsing
                 
                 if(jsonResponse.status !== 200) {
                     jsonResponse.success = false;
@@ -102,7 +105,8 @@ class TransferLayer {
         requestObject.sessionToken = sessionToken
         requestObject.preserved = requestObject.type;
         
-        this.onResponseReceived = onResponseReceived;
+        if(onResponseReceived)
+            this.onResponseReceived = onResponseReceived;
 
         if (!this.socket || this.socket.destroyed || this.socket.closing) {
             console.log('No connection established, attempting to connect...');

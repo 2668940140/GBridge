@@ -1,6 +1,5 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import TransferLayer from '../utils/TransferLayer';
 import BaseConComponent from './BaseConComponent';
 
 class ScoreBoard extends BaseConComponent {
@@ -14,20 +13,19 @@ class ScoreBoard extends BaseConComponent {
 
     componentDidMount() {
         this.establishConnection().then(() => {
-            this.transferLayer.connect().then(() => {
-                this.transferLayer.sendRequest({
-                    type: "estimate_score",
-                    content: {},
-                    extra: null
-                }, this.handleScoreResponse);
-            }).catch(error => {
-                this.displayErrorMessage("Failed to connect to server: " + error.message);
-                this.setState({ loading: false });
-            });
+            this.fetchScores();
         }
         ).catch(() => {
             this.establishConnectionFailure();
         });
+    }
+
+    fetchScores = () => {
+        this.transferLayer.sendRequest({
+            type: "estimate_score",
+            content: {},
+            extra: null
+        }, this.handleScoreResponse);
     }
 
     handleScoreResponse = (response) => {
@@ -38,7 +36,7 @@ class ScoreBoard extends BaseConComponent {
             });
         } else {
             this.displayErrorMessage("Failed to retrieve score.");
-            //this.setState({ loading: false });
+            this.setState({ loading: false });
         }
     }
 
