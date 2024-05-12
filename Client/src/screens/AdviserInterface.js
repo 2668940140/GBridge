@@ -1,23 +1,35 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
-import BaseConComponent from '../components/BaseConComponent';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, TextInput, ActivityIndicator, Modal, Image, Keyboard } from 'react-native';
 import { MyButton } from '../components/MyButton';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 import DefaultOppIcon from '../assets/default_opp_icon.png';
+import BaseConInterface from './BaseConInterface';
 
-class AdviserInterface extends BaseConComponent {
+class AdviserInterface extends BaseConInterface {
     constructor(props) {
         super(props);
-        state = {
+        this.state = {
             activeUser: null,
-            conversations: {}, // Messages are stored by username
+            conversations: {
+                'user1': [],
+                'user2': [],
+            }, // Messages are stored by username
             showSidebar: false,
-            inputText: "",
+            inputText: '',
             isLoading: false
         };
+        this.messageBox = React.createRef();
     }
 
     componentDidMount() {
+        this.keyboardDidShowListener = Keyboard.addListener(
+            'keyboardDidShow',
+            this.scrollToEnd,
+          );
+          this.keyboardDidHideListener = Keyboard.addListener(
+            'keyboardDidHide',
+            this.scrollToEnd,
+          );
         this.transferLayer.connect().then(() => {
             this.transferLayer.sendRequest(global.adviser, this.fetchAdvisorMessages);
         }).catch(() => {
@@ -25,8 +37,22 @@ class AdviserInterface extends BaseConComponent {
         });
     }
 
-    fetchAdvisorMessages = () => {
+    componentWillUnmount() {
+        this.keyboardDidShowListener.remove();
+        this.keyboardDidHideListener.remove();
+        super.componentWillUnmount();
+    }
+
+    scrollToEnd = () => {
+        this.messageBox.current?.scrollToEnd({ animated: true });
+    };
+
+    fetchAdvisorMessages = (response) => {
         if (response.success) {
+            if (!response.content || response.content.length === 0) {
+                console.log("No messages found.");
+                return;
+            }
             let { conversations } = this.state;
             response.content.forEach(({ username, message, time }) => {
                 if (!conversations[username]) {
@@ -42,7 +68,7 @@ class AdviserInterface extends BaseConComponent {
                     opp: "adviser",
                 });
             });
-            this.setState({ conversations: conversations });
+            this.setState({ conversations: conversations }, this.scrollToEnd); 
         } else {
             this.displayErrorMessage("Failed to login as adviser and fetch messages.");
         }
@@ -57,21 +83,32 @@ class AdviserInterface extends BaseConComponent {
     };
 
     renderMessageItem = ({ item }) => {
-        const isUser = item.user !== "adviser";
-        let icon = isUser ? DefaultUserIcon : DefaultOppIcon;
+        const isUser = item.user === "adviser";
+        let icon = isUser ?  DefaultOppIcon : DefaultUserIcon;
         currentDate = new Date().toLocaleDateString();
+        if(isUser) {
+            return (
+                <>
+                <Text style={styles.timeText}>
+                        {item.date != currentDate && (item.date + " ")}
+                        {item.time}
+                </Text>
+                <Text style={[styles.infoText, {textAlign : 'right'} ]}>You</Text>
+                <View style={[styles.messageContainer, styles.userMessage]}>
+                    <Text style={styles.messageText}>{item.text}</Text>
+                    <Image source={icon} style={styles.avatar} />
+                </View>
+                </>
+            );
+        }
         return (
             <>
             <Text style={styles.timeText}>
                     {item.date != currentDate && (item.date + " ")}
                     {item.time}
             </Text>
-            <Text style={[
-                styles.infoText, isUser ? styles.userMessage : styles.responseMessage]}>
-                    {item.user === gUsername ? "You" : item.user}
-            </Text>
-            <View style={[
-                styles.messageContainer, isUser ? styles.userMessage : styles.responseMessage]}>
+            <Text style={[styles.infoText]}>{item.user}</Text>
+            <View style={[styles.messageContainer,styles.responseMessage]}>
                 <Image source={icon} style={styles.avatar} />
                 <Text style={styles.messageText}>{item.text}</Text>
             </View>
@@ -80,25 +117,40 @@ class AdviserInterface extends BaseConComponent {
     };
 
     renderUserList = () => {
-        const { conversations } = this.state;
+        const { conversations, showSidebar } = this.state;
         return (
-            <View style={styles.sidebar}>
+            <Modal
+                animationType='slide'
+                transparent={true}
+                visible={showSidebar}
+                onRequestClose={this.toggleSidebar}>
+            <View style={styles.centeredView}>
+            <View style={styles.modalView}>
                 <FlatList
-                    data={Object.keys(conversations)}
+                    data={Object.keys(conversations) }
                     renderItem={({ item }) => (
-                        <TouchableOpacity style={styles.userItem} onPress={() => this.setActiveUser(item)}>
-                            <Text>{item}</Text>
+                        <TouchableOpacity style={styles.userItem} onPress={() => {
+                            this.setActiveUser(item);
+                            this.toggleSidebar();
+                        }}>
+                            <Text style={{fontSize:18,}}>{item}</Text>
                         </TouchableOpacity>
                     )}
                     keyExtractor={item => item}
                 />
             </View>
+            </View>
+            </Modal>
         );
     };
 
     sendMessage = () => {
-        this.setState({ isLoading: true });
         const { activeUser, inputText, conversations } = this.state;
+        if(inputText.trim() === ''){
+            this.displayErrorMessage("Message cannot be empty.");
+            return;
+        }
+        this.setState({ isLoading: true });
         currentTime = new Date();
         let newMessage = { 
             id: conversations[activeUser].length + 1,
@@ -116,7 +168,7 @@ class AdviserInterface extends BaseConComponent {
             },
             inputText: '', // Clear the input box
             isLoading: false
-        }));
+        }), this.scrollToEnd);
 
         this.transferLayer.sendRequest({
             message: inputText,
@@ -125,21 +177,24 @@ class AdviserInterface extends BaseConComponent {
     };
 
     render() {
-        const { activeUser, conversations, showSidebar,isLoading } = this.state;
+        const { activeUser, conversations, showSidebar,isLoading, inputText } = this.state;
         return (
             <KeyboardAvoidingView style={styles.container} behavior="padding">
                 {showSidebar && this.renderUserList()}
-                <View style={styles.inputContainer} >
-                    <Text style={styles.title}>{this.props.chatType} Chat with</Text>
-                    <MyButton title={activeUser || "Select User"} onPress={this.toggleSidebar} />
+                <View style={{flexDirection: 'row', alignItems : 'center', justifyContent : 'center'}} >
+                    <Text style={styles.title}>{this.props.chatType} Chat with </Text>
+                    <TouchableOpacity onPress={this.toggleSidebar}>
+                        <Text style={[styles.title, {color: '#007BFF'}]}>{activeUser || 'Select a User'}</Text>
+                    </TouchableOpacity>
                 </View>
                 <FlatList
-                    data={conversations[activeUser] || []}
+                    ref={this.messageBox}
+                    style={styles.chatBox}
+                    data={activeUser && conversations[activeUser] || []}
                     renderItem={this.renderMessageItem}
                     keyExtractor={item => item.id.toString()}
                     contentContainerStyle={styles.messageList}
                     ListEmptyComponent={<Text style={{ textAlign: 'center', fontSize:30 }}>No messages</Text>}  
-                    inverted
                 />
                 <View style={styles.inputContainer}>
                     <TextInput
@@ -149,7 +204,7 @@ class AdviserInterface extends BaseConComponent {
                         value={inputText}
                         onChangeText={text => this.setState({ inputText: text })}
                     />
-                    {isLoading ? <ActivityIndicator size="small" color="#0000ff" /> : <MyButton title="Send" onPress={this.sendMessage} disable={!inputText.trim()} />}
+                    {isLoading ? <ActivityIndicator size="small" color="#0000ff" /> : <MyButton title="Send" onPress={this.sendMessage} disable={!inputText || !activeUser} />}
                 </View>
             </KeyboardAvoidingView>
         );
@@ -159,25 +214,46 @@ class AdviserInterface extends BaseConComponent {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 50
-    },
-    sidebar: {
-        width: 200,
-        backgroundColor: '#f0f0f0',
         padding: 10,
     },
+    centeredView: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "right",
+        marginRight: '60%',
+        marginTop: 100,
+        marginBottom: 50,
+        width: '40%',
+    },
+        modalView: {
+        flex: 1,
+        backgroundColor: "#f0f0f0",
+        borderRadius: 20,
+        padding: 20,
+        alignItems: "left",
+        shadowColor: "#000",
+        shadowOffset: {
+          width: 0,
+          height: 2
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5
+      },
     title: {
         fontSize: 20,
         fontWeight: 'bold',
         textAlign: 'center',
-        marginBottom: 10
+        marginBottom: 10,
     },
     chatBox: {
         flex: 1,
+        borderWidth: 1,
+        padding: 10,
     },
     messageContainer: {
         flexDirection: 'row',
-        padding: 10,
+        paddingVertical: 5,
         alignItems: 'center'
     },
     userMessage: {
@@ -199,6 +275,7 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 10,
+        paddingHorizontal: 20,
     },
     timeText: {
         fontSize: 10,
@@ -214,12 +291,15 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'gray',
         borderRadius: 5,
-        padding: 10
+        padding: 10,
+        fontSize: 16,
+        marginTop:10,
     },
     userItem: {
         padding: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#ccc',
+        width: '100%',
     },
 });
 
