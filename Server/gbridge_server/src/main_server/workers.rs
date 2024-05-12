@@ -17,6 +17,7 @@ use tokio::net::TcpStream;
 use tokio::sync::{Mutex, SetError};
 use chatgpt::client::ChatGPT;
 
+use super::adviser::Adviser;
 use super::database::Db;
 use super::session::{self, Session, FINANCIAL_FILEDS};
 
@@ -500,19 +501,17 @@ impl main_server::MainServer
   pub async fn get_market_posts_worker(request : &Json, db : Arc<Db>) -> Result<Json,()>
   {
     let preserved = request.get("preserved");
-    let content = request.get("content").and_then(|f| f.as_str());
+    let content = request.get("content");
     let mut filter = doc! {};
     if content.is_some()
     {
       let content = content.unwrap();
-      let content_bytes = content.as_bytes();
-      let mut content_reader = std::io::Cursor::new(content_bytes);
-      let content = bson::Document::from_reader(&mut content_reader);
-      if content.is_err()
-      {
+      let result = bson::to_bson(content);
+      if result.is_err() {
         return Err(());
       }
-      filter = content.unwrap();
+      let result = result.unwrap();
+      filter = result.as_document().unwrap().clone();
     }
 
     let cursor = db.public_market.find(filter, None).await;
@@ -775,7 +774,7 @@ impl main_server::MainServer
   }
 
   pub async fn send_message_to_adviser_worker(request : &Json, session : Arc<Mutex<Session>>,
-  adviser : Arc<Mutex<Option<Arc<Mutex<TcpStream>>>>>)
+  adviser : Arc<Mutex<Adviser>>)
   -> Result<Json,()>
   {
     let preserved = request.get("preserved");
@@ -786,8 +785,20 @@ impl main_server::MainServer
     let msg = content.unwrap();
     session.lock().await.
     append_adviser_conversation(msg.to_string(), "user".to_string()).await;
-    let adviser = adviser.lock().await;
-    if adviser.is_none() {
+    let json = json!(
+      {
+        "type":"adviser_message",
+        "content":
+        {
+          "username": session.lock().await.username.clone(),
+          "msg": msg,
+          "time": chrono::Utc::now().to_rfc3339()
+        }
+      }
+    );
+    let mut adviser = adviser.lock().await;
+    adviser.waiting_msg.push(json);
+    if adviser.stream.is_none() {
       println!("Send message, but adviser is offline");
       return Ok(
         json!(
@@ -799,18 +810,7 @@ impl main_server::MainServer
         )
       );
     }
-    let adviser = adviser.as_ref().unwrap();
-    let mut adviser = adviser.lock().await;
-    let json = json!(
-      {
-        "username": session.lock().await.username.clone(),
-        "content": msg
-      }
-    );
-    let result = adviser.write_all(json.to_string().as_bytes()).await;
-    if result.is_err() {
-      println!("Send message, but adviser is offline");
-    }
+    adviser.send_waiting_msg();
     return Ok(
       json!(
         {
@@ -878,7 +878,7 @@ impl main_server::MainServer
       }
     }
     return Ok(json!({
-      "type": "get_user_posts",
+      "type": "get_user_deals",
       "status": 200,
       "preserved": preserved,
       "content": content
