@@ -4,6 +4,9 @@ import BaseConComponent from './BaseConComponent';
 import parseItems from '../utils/ParseItem';
 import { SingleButton } from './MyButton';
 const { differenceInDays, addDays } = require('date-fns');
+import { Dimensions } from 'react-native';
+
+global.windowWidth = Dimensions.get('window').width;
 
 class NotificationBoard extends BaseConComponent {
     constructor(props) {
@@ -169,7 +172,7 @@ const styles = StyleSheet.create({
         borderBlockColor: 'black',
         borderWidth: 1,
         margin: 5,
-        width: global.windowWidth - 170,
+        width: windowWidth - 170,
     },
     itemContainer: {
         fontSize: 16,

@@ -146,7 +146,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 6,
         elevation: 4,
-        marginBottom: 20
+        marginBottom: 20,
+        width: '100%'
     },
     suggestionTitle: {
         fontSize: 16,

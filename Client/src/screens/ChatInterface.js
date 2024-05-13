@@ -4,19 +4,13 @@ import BaseConInterface from './BaseConInterface';
 import { MyButton } from '../components/MyButton';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 import DefaultOppIcon from '../assets/default_opp_icon.png';
-import { is } from 'date-fns/locale';
 
 class ChatInterface extends BaseConInterface {
     constructor(props) {
         super(props);
         this.state = {
-            messages: [
-                { id: 1, text: 'Hello', time: '10:00'},
-                { id: 2, text: 'Hi', time: '10:01'},
-            ],
+            messages: [],
             inputText: '',
-            userIcon: null,
-            responseIcon: null,
             loading: true,
             isLoading: false,
             appState: AppState.currentState
@@ -52,15 +46,15 @@ class ChatInterface extends BaseConInterface {
     }
 
     componentDidMount() {
-        AppState.addEventListener('change', this.handleAppStateChange);
         this.keyboardDidShowListener = Keyboard.addListener(
             'keyboardDidShow',
             this.scrollToEnd,
           );
-          this.keyboardDidHideListener = Keyboard.addListener(
+        this.keyboardDidHideListener = Keyboard.addListener(
             'keyboardDidHide',
             this.scrollToEnd,
           );
+        AppState.addEventListener('change', this.handleAppStateChange);
         this.establishConnection().then(() => {
             this.setState({ userIcon, gUserIcon });
             this.establishConnectionSuccess();
@@ -99,9 +93,12 @@ class ChatInterface extends BaseConInterface {
 
     renderMessageItem = ({ item }) => {
         const isUser = item.user !== this.opp;
-        let icon = isUser ? this.userIcon : this.responseIcon;
-        if(icon === null) icon = isUser ? DefaultUserIcon : DefaultOppIcon;
-        else icon = { uri: icon };
+        let icon = { uri : gUserIcon };
+        if(!isUser)
+            icon = DefaultOppIcon;
+        if(gUserIcon === null || gUserIcon === "")
+            icon = DefaultUserIcon;
+
         currentDate = new Date().toLocaleDateString();
         if(isUser){
             return (
@@ -131,7 +128,7 @@ class ChatInterface extends BaseConInterface {
             </View>
             </>
         );
-    };
+    }
 
     render() {
         const { messages, inputText, loading, isLoading } = this.state;
@@ -162,7 +159,7 @@ class ChatInterface extends BaseConInterface {
             </KeyboardAvoidingView>
         );
     }
-}
+};
 
 class BotChatInterface extends ChatInterface{
     constructor(props) {
