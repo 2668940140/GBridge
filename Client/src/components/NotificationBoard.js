@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import BaseConComponent from './BaseConComponent';
-const { differenceInDays } = require('date-fns');
+import parseItems from '../utils/ParseItem';
+import { SingleButton } from './MyButton';
+const { differenceInDays, addDays } = require('date-fns');
 
 class NotificationBoard extends BaseConComponent {
     constructor(props) {
@@ -14,7 +16,7 @@ class NotificationBoard extends BaseConComponent {
     }
 
     componentDidMount() {
-        this.establishConnection.then(() => {
+        this.establishConnection().then(() => {
             this.fetchLoans();
         }).catch(error => {
             this.setState({ loading: false });
@@ -56,7 +58,7 @@ class NotificationBoard extends BaseConComponent {
                 items = items.map(item => {
                     return {
                         ...item,
-                        dueDate: add(new Date(item.created_time), { days: 30 * item.period})
+                        dueDate: addDays(new Date(item.created_time), { days: 30 * item.period})
                         .toLocaleDateString()
                     }
                 })
@@ -64,7 +66,7 @@ class NotificationBoard extends BaseConComponent {
                 const loanDeals = items.filter(req => {
                     return req.type === 'borrow' && differenceInDays(req.dueDate, currentDate) < 15;
                 });
-                this.setState({ deals: { loan: loanDeals, invest: investmentDeals }}, () => { 
+                this.setState({ loans : loanDeals}, () => { 
                     this.fetchMessages();
                     console.log('Fetched posts and deals');
                 });
@@ -160,13 +162,14 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.25,
         shadowRadius: 4,
-        elevation: 5
+        elevation: 5,
     },
     list: {
         flex: 1,
         borderBlockColor: 'black',
         borderWidth: 1,
-        margin: 5
+        margin: 5,
+        width: global.windowWidth - 170,
     },
     itemContainer: {
         fontSize: 16,
@@ -178,7 +181,12 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         backgroundColor: '#e0e0e0',
     },
-    title:{ fontSize: 20, fontWeight: 'bold', margin: 5 }
+    title:{
+        fontSize: 20,
+        fontWeight: 'bold',
+        margin: 5,
+        textAlign: 'center',
+    }
 });
 
 export default NotificationBoard;

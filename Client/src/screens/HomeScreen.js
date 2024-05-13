@@ -10,7 +10,7 @@ class HomeScreen extends BaseInterface {
     constructor(props) {
         super(props);
         this.state = {
-            notificationVisible: false,
+            notificationVisible: true,
         };
         this.marketRef = React.createRef();
         this.notificationRef = React.createRef();

@@ -95,7 +95,7 @@ class ScoreInterface extends BaseConInterface {
         const { score, info, suggestion, loadingInfo, loadingScore,loadingSuggestions } = this.state;
         const { cash, income, expenditure, debt, assets } = info || {};
 
-        if (loadingInfo || loadingSuggestions || loadingScore) return super.render();
+        if (loadingInfo || loadingScore) return super.render();
 
         return (
             <View style={styles.container}>
@@ -107,7 +107,7 @@ class ScoreInterface extends BaseConInterface {
                 <Text style={styles.info}>Assets: ${assets ? assets.toString() : 'NO INFO'}</Text>
                 <ScrollView style={styles.suggestionBoard}>
                     <Text style={styles.suggestionTitle}>Evaluation from bot: </Text>
-                    <Text style={styles.suggestion}>{suggestion}</Text>
+                    <Text style={styles.suggestion}>{loadingSuggestions ? "Waiting for suggestions" : suggestion}</Text>
                 </ScrollView>
                 <TwoButtonsInline
                     title1="Ask GPT"

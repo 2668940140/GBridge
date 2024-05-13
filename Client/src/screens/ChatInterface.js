@@ -112,7 +112,7 @@ class ChatInterface extends BaseConInterface {
                 </Text>
                 <Text style={[styles.infoText, {textAlign : 'right'} ]}>You</Text>
                 <View style={[styles.messageContainer, styles.userMessage]}>
-                    <Text style={styles.messageText}>{item.text}</Text>
+                    <Text style={[styles.messageText, {backgroundColor : "#99CCFF"}]}>{item.text}</Text>
                     <Image source={icon} style={styles.avatar} />
                 </View>
                 </>
@@ -127,7 +127,7 @@ class ChatInterface extends BaseConInterface {
             <Text style={[styles.infoText]}>{item.user}</Text>
             <View style={[styles.messageContainer,styles.responseMessage]}>
                 <Image source={icon} style={styles.avatar} />
-                <Text style={styles.messageText}>{item.text}</Text>
+                <Text style={[styles.messageText, {backgroundColor : "white"}]}>{item.text}</Text>
             </View>
             </>
         );
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     messageContainer: {
         flexDirection: 'row',
         padding: 10,
-        alignItems: 'center'
+        alignItems: 'top'
     },
     userMessage: {
         justifyContent: 'flex-end',
@@ -294,7 +294,14 @@ const styles = StyleSheet.create({
         marginRight: 10
     },
     messageText: {
-        fontSize: 16
+        fontSize: 16,
+        borderRadius: 5,
+        padding: 5,
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+        shadowColor: '#000',
+        shadowOffset: { height: 2, width: 0 },
+        elevation: 4, 
     },
     infoText: {
         fontSize: 10,
