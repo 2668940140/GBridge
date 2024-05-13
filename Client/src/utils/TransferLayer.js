@@ -96,7 +96,7 @@ class TransferLayer {
                     this.onResponseReceived(jsonResponse);
                 }
             } catch (error) {
-                console.error('Error parsing JSON!', error);
+                console.error('Error parsing JSON in transfer!', error);
             }
         });
     }
