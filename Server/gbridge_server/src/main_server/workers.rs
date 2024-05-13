@@ -1006,8 +1006,10 @@ impl main_server::MainServer
     if content.is_none() {
       return Err(());
     }
-    let email = content.unwrap().as_str();
-    let username = content.unwrap().as_str();
+    println!("{:?}", content);
+    let content = content.unwrap();
+    let email = content.get("email").and_then(|e| e.as_str());
+    let username = content.get("username").and_then(|u| u.as_str());
     if email.is_none() && username.is_none() ||
     email.is_some() && username.is_some() {
       return Err(());
