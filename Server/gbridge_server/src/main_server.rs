@@ -67,7 +67,7 @@ impl MainServer {
     adviser.lock().await.send_waiting_msg().await;
 
     println!("Adviser connected");
-    const BUFSIZE : usize = 1024;
+    const BUFSIZE : usize = 10240;
     let mut buf = [0; BUFSIZE];
     loop {
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -140,7 +140,7 @@ impl MainServer {
     adviser_key : String,
     authenticator : Arc<Mutex<Authenticator>>)
   {
-    let mut buf = [0; 1024];
+    let mut buf = [0; 10240];
     let mut session : Option<Arc<Mutex<Session>>> = None;
     let mut username : Option<String> = None;
 
