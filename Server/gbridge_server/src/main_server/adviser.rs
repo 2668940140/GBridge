@@ -1,4 +1,4 @@
-use std::{option, sync::Arc};
+use std::sync::Arc;
 use tokio::{io::AsyncWriteExt, net::TcpStream, sync::Mutex};
 use crate::main_server::Json;
 
