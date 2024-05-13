@@ -1,5 +1,5 @@
 import React from 'react';
-import {Button, Text, View, StyleSheet } from 'react-native';
+import {Text, View, StyleSheet } from 'react-native';
 import ProfileBoard from '../components/ProfileBoard';
 import NotificationBoard from '../components/NotificationBoard';
 import ScoreBoard from '../components/ScoreBoard';
@@ -14,15 +14,19 @@ class HomeScreen extends BaseInterface {
         };
         this.marketRef = React.createRef();
         this.notificationRef = React.createRef();
+        this.scoreRef = React.createRef();
     }
 
     componentDidMount() {
         this.props.navigation.addListener('focus', () => {
-          if (this.marketRef && this.marketRef.current) {
-            this.marketRef.current.fetchItems();
-          }
+            if (this.marketRef && this.marketRef.current) {
+                this.marketRef.current.fetchItems();
+            }
             if (this.notificationRef && this.notificationRef.current) {
                 this.notificationRef.current.fetchMessages();
+            }
+            if (this.scoreRef && this.scoreRef.current) {
+                this.scoreRef.current.fetchScores();
             }
         });
     }
@@ -38,7 +42,7 @@ class HomeScreen extends BaseInterface {
                 <Text style={styles.title}>Welcome to JinQiaoTong!</Text>
                 <View style={styles.personContainer}>
                     <ProfileBoard navigation={navigation} targetScreen={'PersonalPage'} />
-                    <ScoreBoard navigation={navigation} targetScreen={'Score'}/>
+                    <ScoreBoard navigation={navigation} targetScreen={'Score'} ref={this.scoreRef} />
                 </View>
                 <MarketComponent navigation={navigation} ref={this.marketRef}/>
                 {this.state.notificationVisible && (

@@ -19,20 +19,27 @@ class PersonalInfo extends BaseConInterface {
             debt: 0,
             assets: 0,
             verified: false,
-            loading: false,  // Initial state for loading
-            isLoading: false
+            loading: true,  // Initial state for loading
         };
     }
     
     componentDidMount() {
         this.establishConnection().then(() => {
+            this.props.navigation.addListener('focus', () => {
+                this.fetchUserData();
+            });
             this.fetchUserData();
         }).catch((error) => {
             this.establishConnectionFailure();
         });
     }
+
+    componentWillUnmount() {
+        this.props.navigation.removeListener('focus');
+    }
     
     fetchUserData = () => {
+        this.setState({ loading: true });  // Start the loading indicator
         this.transferLayer.sendRequest({
             type: "get_user_info",
             content: [
