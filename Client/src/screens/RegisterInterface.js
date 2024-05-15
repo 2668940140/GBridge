@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)' // Semi-transparent background
+        backgroundColor: 'rgba(250,250,250,0.6)'
     },
     modalView: {
         margin: 20,

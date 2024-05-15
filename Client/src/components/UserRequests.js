@@ -149,7 +149,7 @@ class UserRequests extends BaseConComponent {
     handleReminder = (message) => {
         const { selectedRequest } = this.state;
         this.transferLayer.sendRequest({
-            type: 'send_message',   
+            type: 'send_notification',   
             content: {
                 receiver: selectedRequest.borrower_username,
                 content: message
@@ -253,7 +253,7 @@ class UserRequests extends BaseConComponent {
                 <InputModal
                     visible={reminderModal}
                     multiline={true}
-                    title="Send message to ${selectedRequest.borrower}"
+                    title={"Send message to " + selectedRequest.borrower}
                     placeholder="Enter your message here"
                     onConfirm={this.handleReminder}
                     onRequestClose={this.handleReminderModalClose} />
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 2,
         borderBottomColor: '#808080',
         borderRadius: 10,
-        backgroundColor: '#e0e0e0',
+        backgroundColor: '#F0F8FF',
     },
     title: {
         fontSize: 18,

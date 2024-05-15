@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Text, Modal } from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, Text, Modal, Image } from 'react-native';
 import { KeyboardAvoidingView, Platform } from 'react-native';
 import BaseConComponent from './BaseConComponent';
 import MultiSelect from 'react-native-multiple-select';
@@ -44,6 +44,7 @@ class MarketComponent extends BaseConComponent {
         }
         this.setState({ items: [] });
         const { selectedFilters, type } = this.state;
+        console.log(type);
         content = selectedFilters.length === 0 ? { post_type: type === 'loan' ? 'lend' : 'borrow' } :
         {
             $and:[ 
@@ -51,7 +52,7 @@ class MarketComponent extends BaseConComponent {
                 { $or: selectedFilters.map(filter => ({ method: filter })) }
             ]
         }
-
+        console.log(content);
         this.transferLayer.sendRequest({
             type: `get_market_posts`,
             content: content,
@@ -126,8 +127,7 @@ class MarketComponent extends BaseConComponent {
 
     switchTab = (tab) => {
         if(tab !== this.state.type){
-            this.setState({ type: tab });
-            this.fetchItems();
+            this.setState({ type: tab },this.fetchItems);
         }
     };
 
@@ -169,7 +169,7 @@ class MarketComponent extends BaseConComponent {
                         submitButtonColor="rgba(0, 123, 255, 0.8)"
                         submitButtonText="Apply"
                         styleItemsContainer={[styles.filterContainer,
-                            {backgroundColor: '#e0e0e0',}
+                            {backgroundColor: '#F0F8FF',}
                         ]}
                         styleInputGroup={styles.inputContainer}  
                         tagContainerStyle={styles.filterContainer}                
@@ -217,7 +217,7 @@ class MarketComponent extends BaseConComponent {
                                 {selectedItem.extra && (
                                     <>
                                     <Text style={styles.modalInfo}>Extra Info :</Text>
-                                    <Image source={{ uri: extra }} style={styles.image} />
+                                    <Image source={{ uri: selectedItem.extra }} style={styles.image} />
                                     </>                                  
                                 )}
                                 <Text style={styles.modalInfo}>Description</Text>
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
         borderBottomColor: '#808080',
         width: windowWidth - 100,
         borderRadius: 10,
-        backgroundColor: '#e0e0e0',
+        backgroundColor: '#F0F8FF',
     },
     centeredView: {
         flex: 1,

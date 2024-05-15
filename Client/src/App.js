@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { AppState, Button, Alert } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import React from 'react';
+import { Alert } from 'react-native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginInterface from './screens/LoginInterface';
 import RegisterInterface from './screens/RegisterInterface';
@@ -15,7 +15,6 @@ import VerificationInterface from './screens/VerificationInterface';
 import PersonalInfo from './screens/PersonalInfo';
 import AdviserInterface from './screens/AdviserInterface';
 import { BotChatInterface, AdviserChatInterface } from './screens/ChatInterface';
-import { AsynRemove } from './utils/AsynSL';
 import { resetNavigator } from './utils/ResetNavigator';
 import { LogoutButton } from './components/MyButton';
 import Global from './config/Global';
@@ -49,6 +48,10 @@ const confirmLogout = (navigation) => {
 };
 
 class App extends React.Component{
+  constructor(props){
+    super(props);
+    this.navigationRef = React.createRef();
+  }
 
   componentDidMount() {
     SplashScreen.hide();
@@ -56,7 +59,14 @@ class App extends React.Component{
 
   render(){
   return (
-    <NavigationContainer >
+    <NavigationContainer ref={this.navigationRef}
+     theme={{
+      ...DefaultTheme,
+      colors: {
+        ...DefaultTheme.colors,
+        background: '#F8F8FF',
+      },
+    }} >
       <Stack.Navigator initialRouteName="Welcome"  
           screenOptions={{
             headerStyle: {
@@ -68,7 +78,7 @@ class App extends React.Component{
             },
             headerTitleAlign: 'center',
             headerRight: () => (
-              <LogoutButton onPress={() => confirmLogout(navigationRef.current)} />
+              <LogoutButton onPress={() => confirmLogout(this.navigationRef.current)} />
             ),
           }}
         >

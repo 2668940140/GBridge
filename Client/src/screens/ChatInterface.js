@@ -4,6 +4,7 @@ import BaseConInterface from './BaseConInterface';
 import { MyButton } from '../components/MyButton';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 import DefaultOppIcon from '../assets/default_opp_icon.png';
+import { id } from 'date-fns/locale';
 
 class ChatInterface extends BaseConInterface {
     constructor(props) {
@@ -21,13 +22,13 @@ class ChatInterface extends BaseConInterface {
 
     handleAppStateChange = (nextAppState) => {
         if (this.state.appState.match(/inactive|background/) && nextAppState === 'active') {
-          console.log('App has come to the foreground!');
-          if(this.startApp)
-            this.startApp();
+            console.log('App has come to the foreground!');
+            if (this.startApp)
+                this.startApp();
         } else if (nextAppState.match(/inactive|background/)) {
-          console.log('App has gone to the background');
-          if(this.stopApp)
-            this.stopApp();
+            console.log('App has gone to the background');
+            if (this.stopApp)
+                this.stopApp();
         }
         this.setState({ appState: nextAppState });
     };
@@ -41,7 +42,7 @@ class ChatInterface extends BaseConInterface {
         this.keyboardDidHideListener.remove();
         super.componentWillUnmount();
         this.changeAppState.remove();
-        if(this.stopApp)
+        if (this.stopApp)
             this.stopApp();
     }
 
@@ -49,16 +50,16 @@ class ChatInterface extends BaseConInterface {
         this.keyboardDidShowListener = Keyboard.addListener(
             'keyboardDidShow',
             this.scrollToEnd,
-          );
+        );
         this.keyboardDidHideListener = Keyboard.addListener(
             'keyboardDidHide',
             this.scrollToEnd,
-          );
+        );
         this.changeAppState = AppState.addEventListener('change', this.handleAppStateChange);
         this.establishConnection().then(() => {
             this.setState({ userIcon, gUserIcon });
             this.establishConnectionSuccess();
-            if(this.startApp)
+            if (this.startApp)
                 this.startApp();
         }
         ).catch(() => {
@@ -68,19 +69,19 @@ class ChatInterface extends BaseConInterface {
 
     sendMessage = () => {
         const { inputText, messages } = this.state;
-        if (inputText.trim() === ''){
+        if (inputText.trim() === '') {
             this.displayErrorMessage("Please enter a message.");
             return;
         }
         currentTime = new Date();
-        let newMessage = { 
+        let newMessage = {
             id: messages.length + 1,
             date: currentTime.toLocaleDateString(),
             time: currentTime.toLocaleTimeString(),
             text: inputText,
             user: gUsername
         };
-    
+
         // Add the new message to the state
         this.setState(prevState => ({
             messages: [...prevState.messages, newMessage],
@@ -93,46 +94,46 @@ class ChatInterface extends BaseConInterface {
 
     renderMessageItem = ({ item }) => {
         const isUser = item.user !== this.opp;
-        let icon = { uri : gUserIcon };
-        if(!isUser)
+        let icon = { uri: gUserIcon };
+        if (!isUser)
             icon = DefaultOppIcon;
-        if(gUserIcon === null || gUserIcon === "")
+        if (gUserIcon === null || gUserIcon === "")
             icon = DefaultUserIcon;
 
         currentDate = new Date().toLocaleDateString();
-        if(isUser){
+        if (isUser) {
             return (
                 <>
-                <Text style={styles.timeText}>
-                    {item.date != currentDate && (item.date + " ")}
-                    {item.time}
-                </Text>
-                <Text style={[styles.infoText, {textAlign : 'right'} ]}>You</Text>
-                <View style={[styles.messageContainer, styles.userMessage]}>
-                    <Text style={[styles.messageText, {backgroundColor : "#99CCFF"}]}>{item.text}</Text>
-                    <Image source={icon} style={styles.avatar} />
-                </View>
+                    <Text style={styles.timeText}>
+                        {item.date != currentDate && (item.date + " ")}
+                        {item.time}
+                    </Text>
+                    <Text style={[styles.infoText, { textAlign: 'right' }]}>You</Text>
+                    <View style={[styles.messageContainer, styles.userMessage]}>
+                        <Text style={[styles.messageText, { backgroundColor: "#99CCFF" }]}>{item.text}</Text>
+                        <Image source={icon} style={styles.avatar} />
+                    </View>
                 </>
             );
         }
         return (
             <>
-            <Text style={styles.timeText}>
+                <Text style={styles.timeText}>
                     {item.date != currentDate && (item.date + " ")}
                     {item.time}
-            </Text>
-            <Text style={[styles.infoText]}>{item.user}</Text>
-            <View style={[styles.messageContainer,styles.responseMessage]}>
-                <Image source={icon} style={styles.avatar} />
-                <Text style={[styles.messageText, {backgroundColor : "white"}]}>{item.text}</Text>
-            </View>
+                </Text>
+                <Text style={[styles.infoText]}>{item.user}</Text>
+                <View style={[styles.messageContainer, styles.responseMessage]}>
+                    <Image source={icon} style={styles.avatar} />
+                    <Text style={[styles.messageText, { backgroundColor: "white" }]}>{item.text}</Text>
+                </View>
             </>
         );
     }
 
     render() {
         const { messages, inputText, loading, isLoading } = this.state;
-        if(loading) return super.render();
+        if (loading) return super.render();
 
         return (
             <KeyboardAvoidingView style={styles.container} behavior="padding">
@@ -143,7 +144,7 @@ class ChatInterface extends BaseConInterface {
                     renderItem={this.renderMessageItem}
                     keyExtractor={item => item.id.toString()}
                     contentContainerStyle={styles.messageList}
-                    ListEmptyComponent={<Text style={{ textAlign: 'center', fontSize:30 }}>Send messages to start chat!</Text>}  
+                    ListEmptyComponent={<Text style={{ textAlign: 'center', fontSize: 24 }}>Send messages to start chat!</Text>}
                     ref={this.messageBox}
                 />
                 <View style={styles.inputContainer}>
@@ -161,7 +162,7 @@ class ChatInterface extends BaseConInterface {
     }
 };
 
-class BotChatInterface extends ChatInterface{
+class BotChatInterface extends ChatInterface {
     constructor(props) {
         super(props);
         this.opp = "bot";
@@ -173,7 +174,7 @@ class BotChatInterface extends ChatInterface{
             content: inputText
         }, this.handleBotResponse);
     }
-    
+
     handleBotResponse = (response) => {
         this.setState({ isLoading: false });
         if (response.success) {
@@ -203,33 +204,38 @@ class AdviserChatInterface extends ChatInterface {
         this.intervalId = null;
     }
 
-    startApp= () => {
+    startApp = () => {
         this.fetchAdvisorMessages();
         this.intervalId = setInterval(this.fetchAdvisorMessages, 5000);
-      };
-    
+    };
+
     stopApp = () => {
         clearInterval(this.intervalId);
     };
 
     fetchAdvisorMessages = () => {
-        if(this.state.isLoading || this.state.loading) return;
+        if (this.state.isLoading || this.state.loading) return;
         this.transferLayer.sendRequest({
             type: "get_adviser_conversation"
         }, (response) => {
             if (response.success) {
-                let messages = response.content.map((message, index) => {
-                    timeAll = new Date(message.time);
-                    return {
-                        id: index + 1,
-                        date: timeAll.toLocaleDateString(),
-                        time: timeAll.toLocaleTimeString(),
-                        text: message.msg,
-                        user: message.username === gUsername ? gUsername : message.username
-                    };
-                });
-                
-                this.setState({ messages: messages }, this.scrollToEnd);
+                if (response.content.length > this.state.messages.length) {
+                    let orgMessages = response.content.slice(this.state.messages.length);
+                    let newMessages = orgMessages.map((message, index) => {
+                        timeAll = new Date(message.time);
+                        return {
+                            id: index + 1 + this.state.messages.length,
+                            date: timeAll.toLocaleDateString(),
+                            time: timeAll.toLocaleTimeString(),
+                            text: message.msg,
+                            user: message.role === 'user' ? gUsername : this.opp
+                        };
+                    });
+                    
+                    this.setState(prevState => ({
+                        messages: [...prevState.messages, ...newMessages]
+                    }), this.scrollToEnd);
+                }
             }
             else {
                 this.displayErrorMessage("Failed to fetch messages.");
@@ -269,12 +275,11 @@ const styles = StyleSheet.create({
     chatBox: {
         flex: 1,
         borderWidth: 1,
-        padding: 10,
     },
     messageContainer: {
         flexDirection: 'row',
         paddingVertical: 5,
-        alignItems: 'top'
+        alignItems: 'top',
     },
     userMessage: {
         justifyContent: 'flex-end',
@@ -288,7 +293,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        marginRight: 10
+        marginHorizontal: 5
     },
     messageText: {
         fontSize: 16,
@@ -298,11 +303,11 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         shadowColor: '#000',
         shadowOffset: { height: 2, width: 0 },
-        elevation: 4, 
+        elevation: 4,
     },
     infoText: {
         fontSize: 10,
-        paddingHorizontal: 10
+        paddingHorizontal: 14,
     },
     timeText: {
         fontSize: 10,
@@ -320,8 +325,8 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         padding: 10,
         fontSize: 16,
-        marginTop:10,
+        marginTop: 10,
     },
 });
 
-export { BotChatInterface, AdviserChatInterface};
+export { BotChatInterface, AdviserChatInterface };

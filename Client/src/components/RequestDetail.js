@@ -47,7 +47,7 @@ const RequestDetail = ({ visible, onRequestClose, request, onActionPress }) => {
                 {request.extra && (
                     <>
                     <Text style={styles.modalInfo}>Extra Info :</Text>
-                    <Image source={{ uri: extra }} style={styles.image} />
+                    <Image source={{ uri: request.extra }} style={styles.image} />
                     </>                                  
                     )}
                 <Text style={styles.modalInfo}>Description</Text>

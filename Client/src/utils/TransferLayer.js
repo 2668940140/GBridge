@@ -9,6 +9,7 @@ class TransferLayer {
         this.retryDelay = retryDelay;
         this.isConnected = false;
         this.onResponseReceived = null;
+        this.dataBuffer = '';
     }
 
     checkConnection() {
@@ -66,21 +67,22 @@ class TransferLayer {
     onSessionExpired = null;
 
     setupResponseHandler() {
-        let dataBuffer = '';
         this.socket.on('data', async (data) => {
-            dataBuffer += data.toString();
+            this.dataBuffer += data.toString();
+            console.log('Received data:', this.dataBuffer);
             let jsonResponse;
             try {
-                jsonResponse = JSON.parse(dataBuffer);
+                jsonResponse = JSON.parse(this.dataBuffer);
                 console.log('Received:', jsonResponse);
-                dataBuffer = ''; // Clear the buffer after parsing
-                
+                this.dataBuffer = ''; // Clear the buffer after parsing
+
                 if(jsonResponse.status !== 200) {
                     jsonResponse.success = false;
                 }
                 else{
                     jsonResponse.success = true;
                     // Check for session expiry
+
                 if (jsonResponse.sessionExpired) {
                     if (this.onSessionExpired) {
                         this.onSessionExpired();

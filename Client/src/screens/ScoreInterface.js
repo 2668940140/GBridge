@@ -128,7 +128,6 @@ const styles = StyleSheet.create({
         padding: 20,
         alignItems: 'center',
         justifyContent: 'left',
-        backgroundColor: '#FFFFFF'
     },
     info: {
         fontSize: 16,

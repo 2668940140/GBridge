@@ -10,7 +10,7 @@ class EmailInput extends React.Component {
                     style={[styles.input, styles.usernameInput]}
                     onChangeText={onUsernameChange}
                     value={username}
-                    placeholder="Username"
+                    placeholder="Email Address"
                     editable={editable}
                 />
                 <Text style={styles.atSymbol}>@</Text>

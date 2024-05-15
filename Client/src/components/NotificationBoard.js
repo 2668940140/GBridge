@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
 import BaseConComponent from './BaseConComponent';
 import parseItems from '../utils/ParseItem';
 import { SingleButton } from './MyButton';
@@ -17,6 +17,41 @@ class NotificationBoard extends BaseConComponent {
             loading: true
         };
     }
+
+    confirmReading = (item) => {
+        Alert.alert(
+          "Confirm Reading", // Dialog Title
+          "You make sure you have receive the notification?", // Dialog Message
+          [
+            {
+              text: "Cancel",
+              onPress: () => console.log("Logout canceled"),
+              style: "cancel"
+            },
+            { 
+              text: "Read", 
+              onPress: () => {
+                this.transferLayer.sendRequest({
+                    type: "delete_notification",
+                    content: {
+                        _id : item._id
+                    }
+                }, response => {
+                    if (response.success) {
+                        console.log("Delete notification");
+                        this.fetchMessages();
+                    } else {
+                        this.displayErrorMessage('Failed to delete message.');
+                    }
+                }).catch(() => {
+                    this.displayErrorMessage('Failed to delete message.');
+                });
+              }
+            }
+          ],
+          { cancelable: true } 
+        );
+      };
 
     componentDidMount() {
         this.establishConnection().then(() => {
@@ -38,7 +73,9 @@ class NotificationBoard extends BaseConComponent {
             extra: null
         }, response => {
             if (response.success) {
-                const messages = response.content.filter(msg => msg.receiver === gUsername);
+                const messages = response.content.filter(msg => msg.receiver === gUsername)
+                .map((msg, index) => {return {...msg, id: index}});
+
                 this.setState({ messages: messages }, () => {
                     this.setState({ loading: false });
                     console.log('Fetched messages');
@@ -95,10 +132,10 @@ class NotificationBoard extends BaseConComponent {
     );
 
     renderMessage = ({ item }) => (
-        <View style={styles.itemContainer} >
+        <TouchableOpacity style={styles.itemContainer} onPress={() => this.confirmReading(item)} >
             <Text style={{color: "#007BFF"}}>Sender: {item.sender}</Text>
             <Text style={{fontSize:16}}>  {item.content}</Text>
-        </View>
+        </TouchableOpacity>
     );
 
     renderEmpty = (title) => (
@@ -150,13 +187,13 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        marginTop: 22
+        backgroundColor: 'rgba(250,250,250,0.6)'
     },
     modalView: {
-        margin: 20,
+        margin: 15,
         backgroundColor: "white",
         borderRadius: 20,
-        padding: 35,
+        padding: 20,
         alignItems: "center",
         shadowColor: "#000",
         shadowOffset: {
@@ -172,17 +209,16 @@ const styles = StyleSheet.create({
         borderBlockColor: 'black',
         borderWidth: 1,
         margin: 5,
-        width: windowWidth - 170,
+        width: windowWidth - 150,
     },
     itemContainer: {
         fontSize: 16,
         padding: 10,
-        marginVertical: 5,
         borderBottomWidth: 2,
         borderBottomColor: '#808080',
-        width: '100%',
+        margin: 5,
         borderRadius: 10,
-        backgroundColor: '#e0e0e0',
+        backgroundColor: '#F0F8FF',
     },
     title:{
         fontSize: 20,

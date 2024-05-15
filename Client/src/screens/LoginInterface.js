@@ -15,7 +15,6 @@ class LoginInterface extends BaseConInterface {
         this.state = {
             activeTab: 'username',  // Can be 'email' or 'username'
             activeVerification: 'password',
-            email: '',
             emailName: '',
             emailDomain: '',
             username: '',
@@ -47,7 +46,8 @@ class LoginInterface extends BaseConInterface {
     };
 
     initiateLogin = () => {
-        const { email, password, verificationCode, username, activeTab, activeVerification } = this.state;
+        const {emailDomain, emailName, password, verificationCode, username, activeTab, activeVerification } = this.state;
+        email = emailName + '@' + emailDomain;
         let type = "";
         if(activeTab === 'email' && activeVerification === 'verification code'
             && email && verificationCode) {
@@ -65,7 +65,7 @@ class LoginInterface extends BaseConInterface {
             && username && password) {
             type = "username_password";
             }
-        
+        console.log(this.state);
         if (type !== "") {
             this.setState({ isLoading: true });  // Start loading
             this.transferLayer.sendRequest({

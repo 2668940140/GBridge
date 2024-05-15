@@ -4,16 +4,14 @@ import { MyButton } from '../components/MyButton';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 import DefaultOppIcon from '../assets/default_opp_icon.png';
 import BaseConInterface from './BaseConInterface';
+import { preset } from '../jest.config';
 
 class AdviserInterface extends BaseConInterface {
     constructor(props) {
         super(props);
         this.state = {
             activeUser: null,
-            conversations: {
-                'user1': [],
-                'user2': [],
-            }, // Messages are stored by username
+            conversations: {}, // Messages are stored by username
             showSidebar: false,
             inputText: '',
             isLoading: false
@@ -49,28 +47,38 @@ class AdviserInterface extends BaseConInterface {
 
     fetchAdvisorMessages = (response) => {
         if (response.success) {
-            if (!response.content || response.content.length === 0) {
-                console.log("No messages found.");
+            if(response.type === 'adviser_login')
+            {
+                console.log("Adviser logged in successfully.");
                 return;
             }
+
             let { conversations } = this.state;
-            response.content.forEach(({ username, message, time }) => {
-                if (!conversations[username]) {
-                    conversations[username] = [];
-                }
+            response.content.forEach((container) => {
+                const { username, msg, time } = container.content;
+                let newUser = conversations[username] ? false : true;
                 timeAll = new Date(time);
-                conversations[username].push({
-                    id: conversations[username].length + 1,
+                let newMessage ={
+                    id: newUser ? 1 : conversations[username].length + 1,
                     date : timeAll.toLocaleDateString(),
                     time : timeAll.toLocaleTimeString(),
-                    text: message,
+                    text: msg,
                     user: username,
                     opp: "adviser",
-                });
+                };
+                if (newUser) {
+                    this.setState(prevState => ({ conversations: { ...prevState.conversations, [username]: [newMessage] } }), this.scrollToEnd);
+                }
+                else{
+                    this.setState({ conversations: 
+                        {
+                            ...prevState.conversations,
+                            [username]: [...prevState.conversations[username], newMessage]}
+                        }, this.scrollToEnd);
+                }
             });
-            this.setState({ conversations: conversations }, this.scrollToEnd); 
         } else {
-            this.displayErrorMessage("Failed to login as adviser and fetch messages.");
+            this.displayErrorMessage("Failed to login as adviser or fetch messages.");
         }
     };
 
@@ -137,6 +145,7 @@ class AdviserInterface extends BaseConInterface {
                         </TouchableOpacity>
                     )}
                     keyExtractor={item => item}
+                    ListEmptyComponent={<Text style={{ textAlign: 'center', fontSize:30 }}>No users</Text>}
                 />
             </View>
             </View>
@@ -249,7 +258,6 @@ const styles = StyleSheet.create({
     chatBox: {
         flex: 1,
         borderWidth: 1,
-        padding: 10,
     },
     messageContainer: {
         flexDirection: 'row',
@@ -268,7 +276,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        marginRight: 10
+        marginHorizontal: 5
     },
     messageText: {
         fontSize: 16,
@@ -282,7 +290,7 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 10,
-        paddingHorizontal: 20,
+        paddingHorizontal: 14,
     },
     timeText: {
         fontSize: 10,

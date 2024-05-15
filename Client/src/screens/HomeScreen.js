@@ -59,7 +59,6 @@ class HomeScreen extends BaseInterface {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 20,
