@@ -16,7 +16,8 @@ impl Adviser {
   }
   pub async fn send_waiting_msg(&mut self) {
 
-    let content = serde_json::to_string(&self.waiting_msg).unwrap();
+    let content = serde_json::Value::
+    Array(self.waiting_msg.clone());
     let response = json!(
       {
         "type": "adviser_message",
