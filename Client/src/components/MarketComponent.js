@@ -59,6 +59,7 @@ class MarketComponent extends BaseConComponent {
             extra: null
         }, response => {
             if (response.success) {
+                if(!response.content || response.content.length == 0) return;
                 this.setState({ items: parseItem(response.content).sort((a, b) => b.score - a.score) });
             } else {
                 this.displayErrorMessage("Failed to fetch market items.");

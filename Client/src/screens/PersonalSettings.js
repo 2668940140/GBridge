@@ -89,31 +89,31 @@ class PersonalSettings extends BaseConInterface {
                 <TouchableOpacity onPress={()=> pickCropImage(this.setImage)}>
                     <Text style={styles.picText}>Upload New Icon</Text>
                 </TouchableOpacity>
-                <NumberInput iniValue={cash.toString()} prompt="Cash" updateValue={(value) => {
+                <NumberInput iniValue={cash?.toString() || "null"} prompt="Cash" updateValue={(value) => {
                     if(value !== null)
                         this.setState({ cash: value, cashValid: true });
                     else
                         this.setState({ cashValid: false });
                 }} />
-                <NumberInput iniValue={income.toString()} prompt="Income" updateValue={(value) => {
+                <NumberInput iniValue={income?.toString() || "null"} prompt="Income" updateValue={(value) => {
                     if(value !== null)
                         this.setState({ income: value, incomeValid: true  });
                     else
                         this.setState({ incomeValid: false });
                 }} tail="/mouth" />
-                <NumberInput iniValue={expenditure.toString()} prompt="Expenditure" updateValue={(value) => {
+                <NumberInput iniValue={expenditure?.toString() || "null"} prompt="Expenditure" updateValue={(value) => {
                     if(value !== null)
                         this.setState({ expenditure: value, expenditureValid: true  });
                     else
                         this.setState({ expenditureValid: false });
                 }} tail="/mouth"/>
-                <NumberInput iniValue={debt.toString()} prompt="Debt" updateValue={(value) => {
+                <NumberInput iniValue={debt?.toString() || "null"} prompt="Debt" updateValue={(value) => {
                     if(value !== null)
                         this.setState({ debt: value, debtValid: true  });
                     else
                         this.setState({ debtValid: false });
                 }} />
-                <NumberInput iniValue={assets.toString()} prompt="Assets" updateValue={(value) => {
+                <NumberInput iniValue={assets?.toString() || "null"} prompt="Assets" updateValue={(value) => {
                     if(value !== null)
                         this.setState({ assets: value, assetsValid: true  });
                     else

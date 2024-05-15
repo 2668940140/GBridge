@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, TextInput, ActivityIndicator, Modal, Image, Keyboard } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, TextInput, ActivityIndicator, Modal, Image, Keyboard, AppState } from 'react-native';
 import { MyButton } from '../components/MyButton';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 import DefaultOppIcon from '../assets/default_opp_icon.png';
 import BaseConInterface from './BaseConInterface';
 import { preset } from '../jest.config';
+import { th } from 'date-fns/locale';
 
 class AdviserInterface extends BaseConInterface {
     constructor(props) {
@@ -14,10 +15,34 @@ class AdviserInterface extends BaseConInterface {
             conversations: {}, // Messages are stored by username
             showSidebar: false,
             inputText: '',
-            isLoading: false
+            isLoading: false,
+            appState: AppState.currentState
         };
         this.messageBox = React.createRef();
+        this.intervalId = null;
     }
+
+    handleAppStateChange = (nextAppState) => {
+        if (this.state.appState.match(/inactive|background/) && nextAppState === 'active') {
+            console.log('App has come to the foreground!');
+            if (this.startApp)
+                this.startApp();
+        } else if (nextAppState.match(/inactive|background/)) {
+            console.log('App has gone to the background');
+            if (this.stopApp)
+                this.stopApp();
+        }
+        this.setState({ appState: nextAppState });
+    };
+
+    startApp = () => {
+        this.fetchWithNewConnection();
+        this.intervalId = setInterval(this.fetchWithNewConnection, 5000);
+    };
+
+    stopApp = () => {
+        clearInterval(this.intervalId);
+    };
 
     componentDidMount() {
         this.keyboardDidShowListener = Keyboard.addListener(
@@ -28,17 +53,25 @@ class AdviserInterface extends BaseConInterface {
             'keyboardDidHide',
             this.scrollToEnd,
           );
-        this.transferLayer.connect().then(() => {
-            this.transferLayer.sendRequest(global.adviser, this.fetchAdvisorMessages);
-        }).catch(() => {
-            this.displayErrorMessage("Failed to connect to the server.");
-        });
+          this.changeAppState = AppState.addEventListener('change', this.handleAppStateChange);
     }
 
     componentWillUnmount() {
         this.keyboardDidShowListener.remove();
         this.keyboardDidHideListener.remove();
+        this.changeAppState.remove();
+        if (this.stopApp)
+            this.stopApp();
         super.componentWillUnmount();
+    }
+
+    fetchWithNewConnection = () => {
+        if (this.state.isLoading || this.state.loading) return;
+        this.transferLayer.connect().then(() => {
+            this.transferLayer.sendRequest(global.adviser, this.fetchAdvisorMessages);
+        }).catch(() => {
+            this.displayErrorMessage("Failed to connect to the server.");
+        });
     }
 
     scrollToEnd = () => {
@@ -52,7 +85,8 @@ class AdviserInterface extends BaseConInterface {
                 console.log("Adviser logged in successfully.");
                 return;
             }
-
+            if(!response.content || response.content.length === 0)
+                return;
             let { conversations } = this.state;
             response.content.forEach((container) => {
                 const { username, msg, time } = container.content;
@@ -66,6 +100,9 @@ class AdviserInterface extends BaseConInterface {
                     user: username,
                     opp: "adviser",
                 };
+                console.log(newMessage);
+                conversations[username] = newUser ? [newMessage] : [...conversations[username], newMessage];
+                /*
                 if (newUser) {
                     this.setState(prevState => ({ conversations: { ...prevState.conversations, [username]: [newMessage] } }), this.scrollToEnd);
                 }
@@ -75,11 +112,17 @@ class AdviserInterface extends BaseConInterface {
                             ...prevState.conversations,
                             [username]: [...prevState.conversations[username], newMessage]}
                         }, this.scrollToEnd);
-                }
+                }*/
             });
+            this.setState({ conversations }, this.handleFetchOver);
         } else {
             this.displayErrorMessage("Failed to login as adviser or fetch messages.");
         }
+    };
+
+    handleFetchOver = () => {
+        this.scrollToEnd();
+        this.transferLayer.closeConnection();
     };
 
     toggleSidebar = () => {
@@ -159,8 +202,8 @@ class AdviserInterface extends BaseConInterface {
             this.displayErrorMessage("Message cannot be empty.");
             return;
         }
-        this.setState({ isLoading: true });
-        currentTime = new Date();
+        this.setState({ isLoading: true }, () =>{
+            currentTime = new Date();
         let newMessage = { 
             id: conversations[activeUser].length + 1,
             date: currentTime.toLocaleDateString(),
@@ -179,11 +222,32 @@ class AdviserInterface extends BaseConInterface {
             isLoading: false
         }), this.scrollToEnd);
 
-        this.transferLayer.sendRequest({
-            message: inputText,
-            username: activeUser
+        this.transferLayer.connect().then(() => {
+            this.transferLayer.sendRequest(global.adviser, (response) => {
+                if (response.success) {
+                    console.log("Message sent successfully.");
+                    this.transferLayer.sendRequest({
+                        message: inputText,
+                        username: activeUser
+                    }, (response) => {
+                        if (response.success) {
+                            console.log("Message sent successfully.");
+                        } else {
+                            this.displayErrorMessage("Failed to send message.");
+                        }
+                        this.setState({ isLoading: false });
+                    });
+                } else {
+                    this.displayErrorMessage("Failed to login.");
+                    this.setState({ isLoading: false });
+                }
+            });
+        }).catch(() => {
+            this.displayErrorMessage("Failed to connect to the server.");
+            this.setState({ isLoading: false });
         });
-    };
+    });
+};
 
     render() {
         const { activeUser, conversations, showSidebar,isLoading, inputText } = this.state;

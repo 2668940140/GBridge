@@ -75,7 +75,7 @@ class LoginInterface extends BaseConInterface {
                     password: password,
                     verificationcode: verificationCode,
                     username: username,
-                    loginType: type
+                    login_type: type
                 },
                 extra: null
             }, this.handleServerResponse);

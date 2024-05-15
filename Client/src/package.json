@@ -20,7 +20,6 @@
     "date-fns": "^3.6.0",
     "react": "18.2.0",
     "react-native": "0.73.6",
-    "react-native-document-picker": "^9.2.0",
     "react-native-image-crop-picker": "^0.41.0",
     "react-native-image-picker": "^7.1.2",
     "react-native-multiple-select": "^0.5.12",

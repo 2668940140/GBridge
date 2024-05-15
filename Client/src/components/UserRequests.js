@@ -62,6 +62,7 @@ class UserRequests extends BaseConComponent {
             extra: null
         }, response => {
             if (response.success) {
+                if(!response.content) return;
                 let items = parseItems(response.content);
                 items = items.map(item => {
                     return {
@@ -77,6 +78,7 @@ class UserRequests extends BaseConComponent {
                         extra: null
                     }, response => {
                         if (response.success) {
+                            if(!response.content) return;
                             let items = parseItems(response.content);
                             items = items.map(item => {
                                 return {

@@ -73,6 +73,7 @@ class NotificationBoard extends BaseConComponent {
             extra: null
         }, response => {
             if (response.success) {
+                if(!response.content ) return;
                 const messages = response.content.filter(msg => msg.receiver === gUsername)
                 .map((msg, index) => {return {...msg, id: index}});
 
@@ -94,6 +95,7 @@ class NotificationBoard extends BaseConComponent {
             extra: null
         }, response => {
             if (response.success) {
+                if(!response.content) return;
                 let items = parseItems(response.content);
                 items = items.map(item => {
                     return {

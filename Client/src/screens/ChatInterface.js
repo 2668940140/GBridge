@@ -4,7 +4,6 @@ import BaseConInterface from './BaseConInterface';
 import { MyButton } from '../components/MyButton';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 import DefaultOppIcon from '../assets/default_opp_icon.png';
-import { id } from 'date-fns/locale';
 
 class ChatInterface extends BaseConInterface {
     constructor(props) {
@@ -219,7 +218,7 @@ class AdviserChatInterface extends ChatInterface {
             type: "get_adviser_conversation"
         }, (response) => {
             if (response.success) {
-                if (response.content.length > this.state.messages.length) {
+                if (response.content && response.content.length > this.state.messages.length) {
                     let orgMessages = response.content.slice(this.state.messages.length);
                     let newMessages = orgMessages.map((message, index) => {
                         timeAll = new Date(message.time);
