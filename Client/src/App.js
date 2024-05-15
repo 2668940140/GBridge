@@ -19,6 +19,7 @@ import { AsynRemove } from './utils/AsynSL';
 import { resetNavigator } from './utils/ResetNavigator';
 import { LogoutButton } from './components/MyButton';
 import Global from './config/Global';
+import SplashScreen from "react-native-splash-screen";
 
 const Stack = createNativeStackNavigator();
 
@@ -47,38 +48,15 @@ const confirmLogout = (navigation) => {
   );
 };
 
-function App() {
-  const navigationRef = useRef();
+class App extends React.Component{
 
-  useEffect(() => {
-    const appStateListener = AppState.addEventListener('change', nextAppState => {
-        if (nextAppState === 'background') {
-            console.log('App has gone to the background!');
-            // Ideally, you might want to clear sensitive data here
-            // clearAuthenticationData();
-        }
-    });
+  componentDidMount() {
+    SplashScreen.hide();
+  }
 
-    return () => {
-        appStateListener.remove();
-    };
-}, []);
-
-const clearAuthenticationData = async () => {
-    try {
-        await AsynRemove('username');
-        await AsynRemove('password');
-        await AsynRemove('sessionToken');
-        console.log('Authentication data removed from storage.');
-        resetNavigator(navigationRef.current, "Welcome");
-    } catch (error) {
-        console.error('Failed to clear authentication data:', error);
-    }
-};
-
-
+  render(){
   return (
-    <NavigationContainer ref={navigationRef} >
+    <NavigationContainer >
       <Stack.Navigator initialRouteName="Welcome"  
           screenOptions={{
             headerStyle: {
@@ -111,6 +89,7 @@ const clearAuthenticationData = async () => {
       </Stack.Navigator>
     </NavigationContainer>
   );
+}
 }
 
 export default App;

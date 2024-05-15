@@ -40,7 +40,7 @@ class ChatInterface extends BaseConInterface {
         this.keyboardDidShowListener.remove();
         this.keyboardDidHideListener.remove();
         super.componentWillUnmount();
-        AppState.removeEventListener('change', this.handleAppStateChange);
+        this.changeAppState.remove();
         if(this.stopApp)
             this.stopApp();
     }
@@ -54,7 +54,7 @@ class ChatInterface extends BaseConInterface {
             'keyboardDidHide',
             this.scrollToEnd,
           );
-        AppState.addEventListener('change', this.handleAppStateChange);
+        this.changeAppState = AppState.addEventListener('change', this.handleAppStateChange);
         this.establishConnection().then(() => {
             this.setState({ userIcon, gUserIcon });
             this.establishConnectionSuccess();
@@ -143,7 +143,7 @@ class ChatInterface extends BaseConInterface {
                     renderItem={this.renderMessageItem}
                     keyExtractor={item => item.id.toString()}
                     contentContainerStyle={styles.messageList}
-                    ListEmptyComponent={<Text style={{ textAlign: 'center', fontSize:30 }}>No messages</Text>}  
+                    ListEmptyComponent={<Text style={{ textAlign: 'center', fontSize:30 }}>Send messages to start chat!</Text>}  
                     ref={this.messageBox}
                 />
                 <View style={styles.inputContainer}>
@@ -213,7 +213,7 @@ class AdviserChatInterface extends ChatInterface {
     };
 
     fetchAdvisorMessages = () => {
-        if(this.opp === "bot" || this.state.isLoading || this.state.loading) return;
+        if(this.state.isLoading || this.state.loading) return;
         this.transferLayer.sendRequest({
             type: "get_adviser_conversation"
         }, (response) => {
@@ -224,7 +224,7 @@ class AdviserChatInterface extends ChatInterface {
                         id: index + 1,
                         date: timeAll.toLocaleDateString(),
                         time: timeAll.toLocaleTimeString(),
-                        text: message.message,
+                        text: message.msg,
                         user: message.username === gUsername ? gUsername : message.username
                     };
                 });
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     },
     messageContainer: {
         flexDirection: 'row',
-        padding: 10,
+        paddingVertical: 5,
         alignItems: 'top'
     },
     userMessage: {
