@@ -359,6 +359,16 @@ impl MainServer {
                 Err(())
               }
             }
+            "delete_notification"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::delete_notification_worker(&request_json, session, db.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
             "get_bot_evaluation"=>
             {
               if let Some(session) = session.clone()

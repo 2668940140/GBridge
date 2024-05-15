@@ -997,6 +997,55 @@ impl main_server::MainServer
     }));
   }
 
+
+  pub async fn delete_notification_worker(request : &Json, session : Arc<Mutex<Session>>,
+  db : Arc<Db>)->Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content");
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+    let _id = content.get("_id");
+    if _id.is_none() {
+      return Err(());
+    }
+    let _id = _id.unwrap();
+    let _id = bson::to_bson(_id);
+    if _id.is_err() {
+      return Err(());
+    }
+    let _id = _id.unwrap();
+    let doc = db.users_notification.find_one(doc! {
+      "_id": _id.clone()
+    }, None).await;
+    if doc.is_err() {
+      return Err(());
+    }
+    let doc = doc.unwrap();
+    if doc.is_none() {
+      return Err(());
+    }
+    let doc = doc.unwrap();
+    let receiver = doc.get("receiver").unwrap().as_str().unwrap();
+    let username = session.lock().await.username.clone();
+    if receiver != username {
+      return Err(());
+    }
+    let response = db.users_notification.delete_one(doc! {
+      "_id": _id
+    }, None).await;
+    if response.is_err() {
+      return Err(());
+    }
+    return Ok(json!({
+      "type": "delete_notification",
+      "status": 200,
+      "preserved": preserved
+    }));
+  }
+
   pub async fn get_verificationcode_worker(request : &Json,
     authenticator : Arc<Mutex<Authenticator>>, db :Arc<Db>)
     -> Result<Json,()>
