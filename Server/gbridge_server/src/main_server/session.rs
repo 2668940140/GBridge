@@ -273,8 +273,10 @@ impl Session {
     let merged_msg = format!("System: {}\nUser: {}", 
     self.get_financial_summary().await, message);
 
+
     let conversation = self.bot_conversation.as_mut().unwrap();
-    
+
+    println!("Sending message: {}", merged_msg);
     let response = conversation.send_message(merged_msg).await
     .unwrap();
     response.message().content.clone()

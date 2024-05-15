@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use serde_json::json;
 use tokio::{io::AsyncWriteExt, net::TcpStream, sync::Mutex};
 use crate::main_server::Json;
 
@@ -14,12 +15,18 @@ impl Adviser {
     }
   }
   pub async fn send_waiting_msg(&mut self) {
-    if let Some(stream) = &self.stream {
-      for msg in &self.waiting_msg {
-        let mut stream = stream.lock().await;
-        stream.write_all(msg.to_string().as_bytes()).await.unwrap();
+
+    let content = serde_json::to_string(&self.waiting_msg).unwrap();
+    let response = json!(
+      {
+        "type": "adviser_message",
+        "status":200,
+        "content": content
       }
-      self.waiting_msg.clear();
+    );
+    if let Some(stream) = &self.stream {
+      let mut stream = stream.lock().await;
+      stream.write_all(response.to_string().as_bytes()).await.unwrap();
     }
     
   }
