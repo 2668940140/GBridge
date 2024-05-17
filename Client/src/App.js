@@ -38,6 +38,7 @@ const confirmLogout = (navigation) => {
           console.log("User logged out");
           gUsername = "";
           gPassword = "";
+          gUserIcon = null;
           sessionToken = "";
           resetNavigator(navigation, "Welcome");// Navigate to the welcome screen upon confirmation
         }

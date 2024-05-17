@@ -185,11 +185,11 @@ class RegisterInterface extends  BaseConInterface{
                                 <Text style={styles.viewTerms}>View Terms</Text>
                             </TouchableOpacity>
                         </View>
-                        <SingleButton title="Register" onPress={this.handleRegister} disabled={isLoading || !acceptTerms || !this.state.passwordValid || !this.state.usernameValid} />
+                        <SingleButton title="Register" onPress={this.handleRegister} disable={isLoading || !acceptTerms || !this.state.passwordValid || !this.state.usernameValid} />
                     </>
                 )}
                 {!isCodeSent && (
-                    <MyButton title="Send Verification Code" onPress={this.sendVerificationCode} disabled={isLoading} />
+                    <MyButton title="Send Verification Code" onPress={this.sendVerificationCode} disable={isLoading} />
                 )}
                 {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
             </View>

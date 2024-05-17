@@ -70,6 +70,19 @@ class TransferLayer {
         this.socket.on('data', async (data) => {
             this.dataBuffer += data.toString();
             console.log('Received data:', this.dataBuffer);
+            const adviser_success = '{"type":"adviser_login","status":200}';
+            const i = this.dataBuffer.indexOf(adviser_success);
+            if(i !== -1)
+            {
+                if(this.dataBuffer.slice(i, i+adviser_success.length) === this.dataBuffer)
+                {
+                    this.dataBuffer = '';
+                    return;
+                }
+                if(this.dataBuffer.slice(i, i+adviser_success.length) === adviser_success)
+                    this.dataBuffer = this.dataBuffer.slice(adviser_success.length + i);
+            }
+
             let jsonResponse;
             try {
                 jsonResponse = JSON.parse(this.dataBuffer);

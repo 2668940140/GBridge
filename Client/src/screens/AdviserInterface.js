@@ -54,6 +54,7 @@ class AdviserInterface extends BaseConInterface {
             this.scrollToEnd,
           );
           this.changeAppState = AppState.addEventListener('change', this.handleAppStateChange);
+        this.startApp();
     }
 
     componentWillUnmount() {
@@ -66,7 +67,7 @@ class AdviserInterface extends BaseConInterface {
     }
 
     fetchWithNewConnection = () => {
-        if (this.state.isLoading || this.state.loading) return;
+        if (this.state.isLoading) return;
         this.transferLayer.connect().then(() => {
             this.transferLayer.sendRequest(global.adviser, this.fetchAdvisorMessages);
         }).catch(() => {
@@ -85,13 +86,26 @@ class AdviserInterface extends BaseConInterface {
                 console.log("Adviser logged in successfully.");
                 return;
             }
-            if(!response.content || response.content.length === 0)
-                return;
-            let { conversations } = this.state;
+
+            if(response.content)
+            {
+                let { conversations } = this.state;
             response.content.forEach((container) => {
                 const { username, msg, time } = container.content;
                 let newUser = conversations[username] ? false : true;
                 timeAll = new Date(time);
+                if(!newUser){
+                    let real_new = true;
+                conversations[username].forEach((message) => {
+                    console.log(message.text);
+                    if(message.text === msg)
+                    {
+                        real_new = false;
+                    }
+                });
+                if(!real_new)
+                    return;
+                }
                 let newMessage ={
                     id: newUser ? 1 : conversations[username].length + 1,
                     date : timeAll.toLocaleDateString(),
@@ -114,9 +128,12 @@ class AdviserInterface extends BaseConInterface {
                         }, this.scrollToEnd);
                 }*/
             });
+
             this.setState({ conversations }, this.handleFetchOver);
+            }
         } else {
             this.displayErrorMessage("Failed to login as adviser or fetch messages.");
+            this.transferLayer.closeConnection();
         }
     };
 

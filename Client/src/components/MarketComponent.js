@@ -177,7 +177,7 @@ class MarketComponent extends BaseConComponent {
                     />
                 </View>
                 <Text style={styles.title}>Post in the Market</Text>
-                <Text style={styles.info}>poster-score-interest-amount-duration{"(/mouth)"}</Text>
+                <Text style={styles.info}>poster-score-interest-amount-duration{"(/month)"}</Text>
                 
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : "height"}

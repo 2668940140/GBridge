@@ -226,7 +226,7 @@ class UserRequests extends BaseConComponent {
                     </TouchableOpacity>
                 </View>
                 <Text style={styles.header}>{type} Posts</Text>
-                <Text style={[styles.header, {fontSize : 16}]}>score - amount - period {"(/mouth)"} - date</Text>
+                <Text style={[styles.header, {fontSize : 16}]}>score - amount - period {"(/momth)"} - date</Text>
                 <FlatList
                     data={posts[type]}
                     renderItem={this.renderRequest}
@@ -235,7 +235,7 @@ class UserRequests extends BaseConComponent {
                     ListEmptyComponent={this.renderEmptyComponent}
                 />
                 <Text style={styles.header}>{type} Deals</Text>
-                <Text style={[styles.header, {fontSize : 16}]}>amount - period {"(/mouth)"} - date</Text>
+                <Text style={[styles.header, {fontSize : 16}]}>amount - period {"(/momth)"} - date</Text>
                 <FlatList
                     data={deals[type]}
                     renderItem={this.renderRequest}

@@ -237,7 +237,7 @@ class LoginInterface extends BaseConInterface {
                 <SingleButton
                     title="Login"
                     onPress={this.initiateLogin}
-                    disabled={this.state.isLoading} />
+                    disable={this.state.isLoading} />
                 {this.state.isLoading && (
                 <ActivityIndicator size="large" color="#0000ff" />
                 )}
