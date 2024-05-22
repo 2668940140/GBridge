@@ -399,7 +399,8 @@ impl MainServer {
             {
               if let Some(session) = session.clone()
               {
-                Self::send_single_message_to_bot_worker(&request_json, bot.clone()).await
+                Self::send_single_message_to_bot_worker(&request_json, bot.clone(),
+                session.clone()).await
               }
               else {
                 Err(())

@@ -737,7 +737,7 @@ impl main_server::MainServer
   }
 
   pub async fn send_single_message_to_bot_worker(request : &Json
-  , bot : Arc<ChatGPT>)
+  , bot : Arc<ChatGPT>, session : Arc<Mutex<Session>>)
   -> Result<Json,()>
   {
     let preserved = request.get("preserved");
@@ -746,7 +746,10 @@ impl main_server::MainServer
       return Err(());
     }
     let content = content.unwrap();
-    let response = bot.send_message(content).await;
+    let summary = session.lock().await.get_financial_summary().await;
+    let prompt = format!("{}\n{}", content, summary);
+
+    let response = bot.send_message(prompt).await;
     if response.is_err() {
       return Err(());
     }
