@@ -395,6 +395,16 @@ impl MainServer {
               Self::get_verificationcode_worker
               (&request_json, authenticator.clone(), db.clone()).await
             }
+            "send_single_message_to_bot"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::send_single_message_to_bot_worker(&request_json, bot.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
             _ => {
               Err(())
             }

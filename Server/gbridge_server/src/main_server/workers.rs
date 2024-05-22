@@ -6,6 +6,8 @@ use std::sync::Arc;
 use crate::main_server::authenticator::Authenticator;
 use crate::main_server;
 use crate::main_server::data_structure::Json;
+use chatgpt::converse::Conversation;
+use chatgpt::functions::GptFunction;
 use chrono::{FixedOffset, Utc};
 use futures::StreamExt;
 use lettre::transport::smtp::response;
@@ -731,6 +733,30 @@ impl main_server::MainServer
       "status": 200,
       "preserved": preserved,
       "content": response
+    }));
+  }
+
+  pub async fn send_single_message_to_bot_worker(request : &Json
+  , bot : Arc<ChatGPT>)
+  -> Result<Json,()>
+  {
+    let preserved = request.get("preserved");
+    let content = request.get("content").and_then(|c| c.as_str());
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+    let response = bot.send_message(content).await;
+    if response.is_err() {
+      return Err(());
+    }
+    let content = response.unwrap();
+    let content = content.message().content.clone();
+    return Ok(json!({
+      "type": "send_bot_message",
+      "status": 200,
+      "preserved": preserved,
+      "content": content
     }));
   }
 
