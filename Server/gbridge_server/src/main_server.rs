@@ -43,7 +43,13 @@ impl MainServer {
     self.listener = Some(
       TcpListener::bind(format!("0.0.0.0:{}", self.config.port))
         .await.unwrap());
-    let bot = ChatGPT::new(self.config.openai_key.clone()).unwrap();
+
+    let mut bot_config = chatgpt::
+    config::ModelConfiguration::default();
+    bot_config.engine = chatgpt::config::ChatGPTEngine::Gpt4;
+    let bot = ChatGPT::new_with_config(
+    self.config.openai_key.clone(), bot_config).unwrap();
+
     self.gptbot = Some(Arc::new(bot));
     println!("Server started at {}", self.config.port);
   }
