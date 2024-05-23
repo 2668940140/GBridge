@@ -1,24 +1,34 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
+import BaseComponent from './BaseComponent';
 
-const NumberInput = ({iniValue, prompt, tail, updateValue}) => {
-    const [input, setInput] = useState(iniValue);  // Initial value for the TextInput
-    const [isValid, setIsValid] = useState(true); // State to keep track of validity
-  
-    const handleInputChange = (text) => {
-      setInput(text); 
+class NumberInput extends BaseComponent {
+    constructor(props) {
+        super(props);
+        this.state = {
+            input: this.props.iniValue,
+            isValid: true
+        };
+    }
+
+    handleInputChange = (text) => {
+      const {updateValue} = this.props;
+      this.setState({input: text});
       if(text.trim() !== '' && /^-?\d+(\.\d+)?$/.test(text.trim())
         && !isNaN(parseFloat(text))) {
-          setIsValid(true);
+          this.setState({isValid: true});
           updateValue(parseFloat(text));
         }
       else{
-        setIsValid(false);
+        this.setState({isValid: false});
         updateValue(null);
       }
     };
   
-    return (
+    render() {
+      const {input, isValid} = this.state;
+      const {iniValue, prompt, tail} = this.props;
+      return (
       <View style={styles.container}>
         <Text style={styles.prompt}>{prompt + ":"}</Text>
         <View style={styles.inputContainer}>
@@ -27,7 +37,7 @@ const NumberInput = ({iniValue, prompt, tail, updateValue}) => {
           keyboardType="numeric"  // Set the keyboard type to numeric
           value={input}
           placeholder={iniValue}
-          onChangeText={handleInputChange}  // Update the input based on user entry
+          onChangeText={this.handleInputChange}  // Update the input based on user entry
         />
         {input.length > 0 && (
                     <Text style={isValid ? styles.validIndicator : styles.invalidIndicator}>
@@ -38,7 +48,8 @@ const NumberInput = ({iniValue, prompt, tail, updateValue}) => {
         {tail && <Text style={styles.label}>{tail}</Text>}
       </View>
     );
-  };
+  }
+};
   
 const LabelInput = ({iniValue, prompt, tail, updateValue}) => {
     const [input, setInput] = useState(iniValue);  // Initial value for the TextInput

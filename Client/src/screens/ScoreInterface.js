@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet,  ScrollView } from 'react-native';
 import BaseConInterface from './BaseConInterface';
-import { TwoButtonsInline } from '../components/MyButton';
+import { BottomBar, TwoButtonsInline } from '../components/MyButton';
 
 class ScoreInterface extends BaseConInterface {
     constructor(props) {
@@ -99,24 +99,27 @@ class ScoreInterface extends BaseConInterface {
 
         return (
             <View style={styles.container}>
-                <Text style={styles.info}>Your Score: {score.toFixed(2)}/1.00</Text>
-                <Text style={styles.info}>Cash: ${cash ? cash.toString() : 'NO INFO'}</Text>
-                <Text style={styles.info}>Income: ${income ? income.toString() : 'NO INFO' }/month</Text>
-                <Text style={styles.info}>Expenditure: ${expenditure ? expenditure.toString() : 'NO INFO'}/month</Text>
-                <Text style={styles.info}>Debt: ${debt ? debt.toString() : 'NO INFO'}</Text>
-                <Text style={styles.info}>Assets: ${assets ? assets.toString() : 'NO INFO'}</Text>
-                <ScrollView style={styles.suggestionBoard}>
-                    <Text style={styles.suggestionTitle}>Evaluation from bot: </Text>
-                    <Text style={styles.suggestion}>{loadingSuggestions ? "Waiting for suggestions" : suggestion}</Text>
-                </ScrollView>
-                <TwoButtonsInline
-                    title1="Ask GPT"
-                    title2="Ask professional"
-                    onPress1={() => this.props.navigation.navigate('BotChat')}
-                    onPress2={() => this.props.navigation.navigate('AdviserChat')}
-                    disable1={false}
-                    disable2={false}
-                />
+                <View style={{alignItems: 'center', flex: 1, justifyContent: 'center',}}>
+                    <Text style={styles.info}>Your Score: {score.toFixed(2)}/1.00</Text>
+                    <Text style={styles.info}>Cash: ${cash ? cash.toString() : 'NO INFO'}</Text>
+                    <Text style={styles.info}>Income: ${income ? income.toString() : 'NO INFO' }/month</Text>
+                    <Text style={styles.info}>Expenditure: ${expenditure ? expenditure.toString() : 'NO INFO'}/month</Text>
+                    <Text style={styles.info}>Debt: ${debt ? debt.toString() : 'NO INFO'}</Text>
+                    <Text style={styles.info}>Assets: ${assets ? assets.toString() : 'NO INFO'}</Text>
+                    <ScrollView style={styles.suggestionBoard}>
+                        <Text style={styles.suggestionTitle}>Evaluation from bot: </Text>
+                        <Text style={styles.suggestion}>{loadingSuggestions ? "Waiting for suggestions" : suggestion}</Text>
+                    </ScrollView>
+                    <TwoButtonsInline
+                        title1="Ask GPT"
+                        title2="Ask professional"
+                        onPress1={() => this.props.navigation.navigate('BotChat')}
+                        onPress2={() => this.props.navigation.navigate('AdviserChat')}
+                        disable1={false}
+                        disable2={false}
+                    />
+                </View>
+                <BottomBar navigation={this.props.navigation} selected={'Score'} />
             </View>
         );
     }
@@ -126,7 +129,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-        alignItems: 'center',
+        paddingBottom: 10,
         justifyContent: 'left',
     },
     info: {

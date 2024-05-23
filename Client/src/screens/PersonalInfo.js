@@ -5,6 +5,7 @@ import BaseConInterface from './BaseConInterface';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 import { TwoButtonsInline } from '../components/MyButton';
 import { resetNavigator } from '../utils/ResetNavigator';
+import { BottomBar } from '../components/MyButton';
 
 class PersonalInfo extends BaseConInterface {
     constructor(props) {
@@ -97,18 +98,20 @@ class PersonalInfo extends BaseConInterface {
     
         return (
             <View style={styles.container}>
-                <Image source={userIcon ? { uri: userIcon } : DefaultUserIcon} style={styles.icon} />
-                <Text style={styles.info}>Username: {username}</Text>
-                <Text style={styles.info}>Email: {email}</Text>
-                <Text style={styles.info}>{verified ? 'Verified' : 'Not Verified'}</Text>
-                <Text style={styles.info}>Cash: ${cash ? cash.toString() : '0'}</Text>
-                <Text style={styles.info}>Income: ${income ? income.toString() : '0' }/month</Text>
-                <Text style={styles.info}>Expenditure: ${expenditure ? expenditure.toString() : '0'}/month</Text>
-                <Text style={styles.info}>Debt: ${debt ? debt.toString() : '0'}</Text>
-                <Text style={styles.info}>Assets: ${assets ? assets.toString() : '0'}</Text>
-    
-                <TwoButtonsInline title1="Verify" title2="Modify" onPress1={this.handleVerificationPress} onPress2={this.handleModificationPress} disable1={verified} disable2={false}/>
-                    
+                <View style={{alignItems: 'center', flex: 1, justifyContent: 'center',}}>
+                    <Image source={userIcon ? { uri: userIcon } : DefaultUserIcon} style={styles.icon} />
+                    <Text style={styles.info}>Username: {username}</Text>
+                    <Text style={styles.info}>Email: {email}</Text>
+                    <Text style={styles.info}>{verified ? 'Verified' : 'Not Verified'}</Text>
+                    <Text style={styles.info}>Cash: ${cash ? cash.toString() : '0'}</Text>
+                    <Text style={styles.info}>Income: ${income ? income.toString() : '0' }/month</Text>
+                    <Text style={styles.info}>Expenditure: ${expenditure ? expenditure.toString() : '0'}/month</Text>
+                    <Text style={styles.info}>Debt: ${debt ? debt.toString() : '0'}</Text>
+                    <Text style={styles.info}>Assets: ${assets ? assets.toString() : '0'}</Text>
+        
+                    <TwoButtonsInline title1="Verify" title2="Modify" onPress1={this.handleVerificationPress} onPress2={this.handleModificationPress} disable1={verified} disable2={false}/>
+                </View>
+                <BottomBar navigation={this.props.navigation} selected={'PersonalInfo'} />
             </View>
         );
     }
@@ -117,9 +120,9 @@ class PersonalInfo extends BaseConInterface {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        alignItems: 'center',
         justifyContent: 'center',
         padding: 20,
+        paddingBottom: 10,
     },
     icon: {
         width: 100,

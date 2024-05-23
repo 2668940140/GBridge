@@ -16,9 +16,10 @@ import PersonalInfo from './screens/PersonalInfo';
 import AdviserInterface from './screens/AdviserInterface';
 import { BotChatInterface, AdviserChatInterface } from './screens/ChatInterface';
 import { resetNavigator } from './utils/ResetNavigator';
-import { LogoutButton } from './components/MyButton';
+import { IPSetting, LogoutButton } from './components/MyButton';
 import Global from './config/Global';
 import SplashScreen from "react-native-splash-screen";
+import { AsynSave } from './utils/AsynSL';
 
 const Stack = createNativeStackNavigator();
 
@@ -58,6 +59,13 @@ class App extends React.Component{
     SplashScreen.hide();
   }
 
+  componentWillUnmount() {
+    AsynSave('portrait', gUserIcon).then(() => {
+      console.log('Portrait saved');
+      super.componentWillUnmount();
+    });
+  }
+
   render(){
   return (
     <NavigationContainer ref={this.navigationRef}
@@ -83,7 +91,7 @@ class App extends React.Component{
             ),
           }}
         >
-        <Stack.Screen name="Welcome" component={WelcomeInterface} options={{headerRight:null}}/>
+        <Stack.Screen name="Welcome" component={WelcomeInterface} options={{headerRight:() => <IPSetting />}}/>
         <Stack.Screen name="Login" component={LoginInterface} options={{headerRight:null}}/>
         <Stack.Screen name="Register" component={RegisterInterface} options={{headerRight:null}}/>
         <Stack.Screen name="Home" component={HomeScreen} />

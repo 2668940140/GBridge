@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal, View, Text, TextInput, StyleSheet } from 'react-native';
 import { SingleButton } from './MyButton';
 
-const InputModal = ({modalVisible, onConfirm, onRequestClose, title, placeholder, multiline }) => {
+const InputModal = ({modalVisible, onConfirm, onRequestClose, title, placeholder, multiline, canNone }) => {
     const [inputText, setInputText] = useState('');
   
     return (
@@ -23,7 +23,8 @@ const InputModal = ({modalVisible, onConfirm, onRequestClose, title, placeholder
                 placeholder={placeholder}
               />
               <View style={styles.buttonContainer}>
-                <SingleButton title="Confirm" onPress={() => onConfirm(inputText)} disable={!inputText || inputText===""}/>
+                {canNone && <SingleButton title="Send" onPress={() => onConfirm(inputText)} disable={false}/> }
+                {!canNone && <SingleButton title="Confirm" onPress={() => onConfirm(inputText)} disable={!inputText || inputText===""}/>}
                 <SingleButton title="Cancel" onPress={onRequestClose} disable={false}/>
               </View>
             </View>
