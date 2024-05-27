@@ -412,6 +412,16 @@ impl MainServer {
                 Err(())
               }
             }
+            "borrow_post_estimate_score_worker"=>
+            {
+              if let Some(session) = session.clone()
+              {
+                Self::borrow_post_estimate_score_worker(&request_json, session.clone()).await
+              }
+              else {
+                Err(())
+              }
+            }
             _ => {
               Err(())
             }

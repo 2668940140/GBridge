@@ -378,6 +378,71 @@ impl main_server::MainServer
     }));
   }
 
+  pub async fn borrow_post_estimate_score_worker(request : &Json, session : Arc<Mutex<Session>>)
+  -> Result<Json,()>
+  {
+    use crate::main_server::utils::predict;
+    let preserved = request.get("preserved");
+    let content = request.get("content");
+    if content.is_none() {
+      return Err(());
+    }
+    let content = content.unwrap();
+    // no_of_dependents:i64,
+    // graduated:bool,
+    // self_employed:bool,
+    // income_annum:f64,
+    // loan_amount:f64,
+    // loan_term:i64,
+    // cibil_score:f64,
+    // residential_assets_value:f64,
+    // commercial_assets_value:f64,
+    // luxury_assets_value:f64,
+    // bank_asset_value:f64,
+    let no_of_dependents = content.get("no_of_dependents").and_then(|d| d.as_i64());
+    let graduated = content.get("graduated").and_then(|g| g.as_bool());
+    let self_employed = content.get("self_employed").and_then(|s| s.as_bool());
+    let income_annum = content.get("income_annum").and_then(|i| i.as_f64());
+    let loan_amount = content.get("loan_amount").and_then(|l| l.as_f64());
+    let loan_term = content.get("loan_term").and_then(|l| l.as_i64());
+    let cibil_score = content.get("cibil_score").and_then(|c| c.as_f64());
+    let residential_assets_value = content.get("residential_assets_value").and_then(|r| r.as_f64());
+    let commercial_assets_value = content.get("commercial_assets_value").and_then(|c| c.as_f64());
+    let luxury_assets_value = content.get("luxury_assets_value").and_then(|l| l.as_f64());
+    let bank_asset_value = content.get("bank_asset_value").and_then(|b| b.as_f64());
+
+    if no_of_dependents.is_none() || graduated.is_none() || self_employed.is_none() ||
+    income_annum.is_none() || loan_amount.is_none() || loan_term.is_none() ||
+    cibil_score.is_none() || residential_assets_value.is_none() || commercial_assets_value.is_none() ||
+    luxury_assets_value.is_none() || bank_asset_value.is_none() {
+      return Err(());
+    }
+
+    let no_of_dependents = no_of_dependents.unwrap();
+    let graduated = graduated.unwrap();
+    let self_employed = self_employed.unwrap();
+    let income_annum = income_annum.unwrap();
+    let loan_amount = loan_amount.unwrap();
+    let loan_term = loan_term.unwrap();
+    let cibil_score = cibil_score.unwrap();
+    let residential_assets_value = residential_assets_value.unwrap();
+    let commercial_assets_value = commercial_assets_value.unwrap();
+    let luxury_assets_value = luxury_assets_value.unwrap();
+    let bank_asset_value = bank_asset_value.unwrap();
+    
+    let score = predict(no_of_dependents, graduated, self_employed, income_annum, loan_amount, loan_term, cibil_score, residential_assets_value, commercial_assets_value, luxury_assets_value, bank_asset_value);
+
+    return Ok(json!({
+      "type": "borrow_post_estimate_score",
+      "status": 200,
+      "preserved": preserved,
+      "content": {
+        "score": score
+      }
+    }));
+
+  }
+
   pub async fn submit_market_post_worker(request : &Json, db : Arc<Db>, session : Arc<Mutex<Session>>)
   -> Result<Json, ()>
   {

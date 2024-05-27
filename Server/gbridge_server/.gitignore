@@ -3,3 +3,7 @@ target
 
 #ignore vscode settings
 .vscode
+
+#ignore temp files
+extern/model/input.csv
+extern/model/output.csv
