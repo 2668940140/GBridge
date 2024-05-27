@@ -12,6 +12,7 @@ use mongodb::{bson::doc, change_stream::session};
 use crate::main_server::data_structure::Json;
 use lazy_static::lazy_static;
 
+
 pub struct Session
 {
   pub username : String,
@@ -21,6 +22,13 @@ pub struct Session
   pub expenditure : Option<f64>, // monthly expenditure
   pub debt : Option<f64>,
   pub assets : Option<f64>,
+  pub no_of_dependents : Option<i64>,
+  pub graduated : Option<bool>,
+  pub self_employed : Option<bool>,
+  pub residential_assets_value : Option<f64>,
+  pub commercial_assets_value : Option<f64>,
+  pub luxury_assets_value : Option<f64>,
+  pub bank_asset_value : Option<f64>,
   pub email : Option<String>,
   pub password : Option<String>,
   pub authenticated : Option<bool>,
@@ -113,6 +121,13 @@ impl Session {
       expenditure: None,
       debt: None,
       assets: None,
+      no_of_dependents: None,
+      graduated: None,
+      self_employed: None,
+      residential_assets_value: None,
+      commercial_assets_value: None,
+      luxury_assets_value: None,
+      bank_asset_value: None,
       email: None,
       bot_conversation: None,
       adviser_conversation: None,
@@ -326,6 +341,48 @@ impl Session {
             self.assets = receive_item.unwrap().as_f64();
           }
         },
+        "no_of_dependents" => {
+          let receive_item = received.get("no_of_dependents");
+          if receive_item.is_some() {
+            self.no_of_dependents = receive_item.unwrap().as_i64();
+          }
+        },
+        "graduated" => {
+          let receive_item = received.get("graduated");
+          if receive_item.is_some() {
+            self.graduated = receive_item.unwrap().as_bool();
+          }
+        },
+        "self_employed" => {
+          let receive_item = received.get("self_employed");
+          if receive_item.is_some() {
+            self.self_employed = receive_item.unwrap().as_bool();
+          }
+        },
+        "residential_assets_value" => {
+          let receive_item = received.get("residential_assets_value");
+          if receive_item.is_some() {
+            self.residential_assets_value = receive_item.unwrap().as_f64();
+          }
+        },
+        "commercial_assets_value" => {
+          let receive_item = received.get("commercial_assets_value");
+          if receive_item.is_some() {
+            self.commercial_assets_value = receive_item.unwrap().as_f64();
+          }
+        },
+        "luxury_assets_value" => {
+          let receive_item = received.get("luxury_assets_value");
+          if receive_item.is_some() {
+            self.luxury_assets_value = receive_item.unwrap().as_f64();
+          }
+        },
+        "bank_asset_value" => {
+          let receive_item = received.get("bank_asset_value");
+          if receive_item.is_some() {
+            self.bank_asset_value = receive_item.unwrap().as_f64();
+          }
+        },
         "email" => {
           let receive_item = received.get("email");
           if receive_item.is_some() {
@@ -390,6 +447,41 @@ impl Session {
         "assets" => {
           if self.assets.is_some() {
             update.insert("assets", self.assets.as_ref().unwrap());
+          }
+        },
+        "no_of_dependents" => {
+          if self.no_of_dependents.is_some() {
+            update.insert("no_of_dependents", self.no_of_dependents.as_ref().unwrap());
+          }
+        },
+        "graduated" => {
+          if self.graduated.is_some() {
+            update.insert("graduated", self.graduated.as_ref().unwrap());
+          }
+        },
+        "self_employed" => {
+          if self.self_employed.is_some() {
+            update.insert("self_employed", self.self_employed.as_ref().unwrap());
+          }
+        },
+        "residential_assets_value" => {
+          if self.residential_assets_value.is_some() {
+            update.insert("residential_assets_value", self.residential_assets_value.as_ref().unwrap());
+          }
+        },
+        "commercial_assets_value" => {
+          if self.commercial_assets_value.is_some() {
+            update.insert("commercial_assets_value", self.commercial_assets_value.as_ref().unwrap());
+          }
+        },
+        "luxury_assets_value" => {
+          if self.luxury_assets_value.is_some() {
+            update.insert("luxury_assets_value", self.luxury_assets_value.as_ref().unwrap());
+          }
+        },
+        "bank_asset_value" => {
+          if self.bank_asset_value.is_some() {
+            update.insert("bank_asset_value", self.bank_asset_value.as_ref().unwrap());
           }
         },
         "authenticated"=>
@@ -536,6 +628,27 @@ impl Session {
     }
     if self.assets.is_some() {
       string_info.push_str(&format!("assets: ${}, ", self.assets.unwrap()));
+    }
+    if self.no_of_dependents.is_some() {
+      string_info.push_str(&format!("number of dependents: {}, ", self.no_of_dependents.unwrap()));
+    }
+    if self.graduated.is_some() {
+      string_info.push_str(&format!("graduated: {}, ", self.graduated.unwrap()));
+    }
+    if self.self_employed.is_some() {
+      string_info.push_str(&format!("self employed: {}, ", self.self_employed.unwrap()));
+    }
+    if self.residential_assets_value.is_some() {
+      string_info.push_str(&format!("residential assets value: ${}, ", self.residential_assets_value.unwrap()));
+    }
+    if self.commercial_assets_value.is_some() {
+      string_info.push_str(&format!("commercial assets value: ${}, ", self.commercial_assets_value.unwrap()));
+    }
+    if self.luxury_assets_value.is_some() {
+      string_info.push_str(&format!("luxury assets value: ${}, ", self.luxury_assets_value.unwrap()));
+    }
+    if self.bank_asset_value.is_some() {
+      string_info.push_str(&format!("bank asset value: ${}, ", self.bank_asset_value.unwrap()));
     }
     if string_info.len() == 0
     {

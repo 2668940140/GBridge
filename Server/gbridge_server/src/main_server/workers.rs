@@ -268,6 +268,34 @@ impl main_server::MainServer
           vector.push("assets".to_string());
           session.lock().await.assets = value.as_f64();
         },
+        "no_of_dependents" => {
+          vector.push("no_of_dependents".to_string());
+          session.lock().await.no_of_dependents = value.as_i64();
+        },
+        "graduated" => {
+          vector.push("graduated".to_string());
+          session.lock().await.graduated = value.as_bool();
+        },
+        "self_employed" => {
+          vector.push("self_employed".to_string());
+          session.lock().await.self_employed = value.as_bool();
+        },
+        "residential_assets_value" => {
+          vector.push("residential_assets_value".to_string());
+          session.lock().await.residential_assets_value = value.as_f64();
+        },
+        "commercial_assets_value" => {
+          vector.push("commercial_assets_value".to_string());
+          session.lock().await.commercial_assets_value = value.as_f64();
+        },
+        "luxury_assets_value" => {
+          vector.push("luxury_assets_value".to_string());
+          session.lock().await.luxury_assets_value = value.as_f64();
+        },
+        "bank_asset_value" => {
+          vector.push("bank_asset_value".to_string());
+          session.lock().await.bank_asset_value = value.as_f64();
+        },
         "authenticated"=>
         {
           vector.push("authenticated".to_string());
@@ -329,6 +357,34 @@ impl main_server::MainServer
         "assets" => {
           content["assets"] = session.
           lock().await.assets.map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "no_of_dependents" => {
+          content["no_of_dependents"] = session.
+          lock().await.no_of_dependents.map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "graduated" => {
+          content["graduated"] = session.
+          lock().await.graduated.map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "self_employed" => {
+          content["self_employed"] = session.
+          lock().await.self_employed.map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "residential_assets_value" => {
+          content["residential_assets_value"] = session.
+          lock().await.residential_assets_value.map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "commercial_assets_value" => {
+          content["commercial_assets_value"] = session.
+          lock().await.commercial_assets_value.map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "luxury_assets_value" => {
+          content["luxury_assets_value"] = session.
+          lock().await.luxury_assets_value.map(|s| json!(s)).unwrap_or(json!(null));
+        },
+        "bank_asset_value" => {
+          content["bank_asset_value"] = session.
+          lock().await.bank_asset_value.map(|s| json!(s)).unwrap_or(json!(null));
         },
         "email"=> {
           content["email"] = session.
