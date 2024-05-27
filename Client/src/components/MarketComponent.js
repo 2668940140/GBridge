@@ -114,7 +114,7 @@ class MarketComponent extends BaseConComponent {
 
     renderItem = ({ item }) => (
         <TouchableOpacity style={styles.itemContainer} onPress={() => this.handleItemPress(item)}>
-            <Text>{item.poster} - {item.score} - {item.interest} - {item.amount} - {item.period}</Text>
+            <Text>{item.poster} - {parseFloat(item.score).toFixed(3)} - {item.interest} - {item.amount} - {item.period}</Text>
         </TouchableOpacity>
     );
 
@@ -240,6 +240,7 @@ class MarketComponent extends BaseConComponent {
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 10,

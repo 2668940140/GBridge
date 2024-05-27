@@ -80,6 +80,9 @@ class NotificationBoard extends BaseConComponent {
                 this.setState({ messages: messages }, () => {
                     this.setState({ loading: false });
                     console.log('Fetched messages');
+                    this.props.onRequestShow(this.state.messages.length > 0 ||
+                        this.state.loans.length > 0
+                    );
                 });
             } else {
                 this.displayErrorMessage('Failed to fetch messages.');

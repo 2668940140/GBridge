@@ -5,8 +5,19 @@ import BaseConComponent from './BaseConComponent';
 class ScoreBoard extends BaseConComponent {
     constructor(props) {
         super(props);
+        this.blue = {
+            r: 0,
+            g: 123,
+            b: 255,
+        };
+        this.red = {
+            r: 255,
+            g: 44,
+            b: 44,
+        };
         this.state = {
             score: 0.5,
+            color: this.blue,
             loading: true
         };
     }
@@ -30,8 +41,13 @@ class ScoreBoard extends BaseConComponent {
 
     handleScoreResponse = (response) => {
         if (response.success) {
+            let color = {};
+            color.r = Math.floor((1 - response.content.score) * this.red.r + response.content.score * this.blue.r);
+            color.g = Math.floor((1 - response.content.score) * this.red.g + response.content.score * this.blue.g);
+            color.b = Math.floor((1 - response.content.score) * this.red.b + response.content.score * this.blue.b);
             this.setState({
                 score: response.content.score,
+                color: color,
                 loading: false
             });
         } else {
@@ -41,8 +57,9 @@ class ScoreBoard extends BaseConComponent {
     }
 
     render() {
-        const { score, loading } = this.state;
-        const { navigation, targetScreen } = this.props; // Ensure navigation and targetScreen are passed as props
+        const { score, loading, color } = this.state;
+        const { navigation, targetScreen } = this.props; 
+        let rgba = `rgba(${color.r}, ${color.g}, ${color.b}, 1)`;
 
         if (loading) {
             return this.renderLoading();
@@ -51,7 +68,7 @@ class ScoreBoard extends BaseConComponent {
         return (
             <TouchableOpacity style={styles.container} onPress={() => navigation.navigate(targetScreen)}>
                 <Text style={styles.scoreLabel}>Your Score:</Text>
-                <Text style={styles.score}>{score.toFixed(2)}/1.00</Text>
+                <Text style={[styles.score, {color: {rgba}}]}>{score.toFixed(2)}/1.00</Text>
             </TouchableOpacity>
         );
     }
@@ -79,7 +96,6 @@ const styles = StyleSheet.create({
     score: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#007BFF'
     }
 });
 

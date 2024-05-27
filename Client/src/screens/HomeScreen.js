@@ -5,12 +5,13 @@ import NotificationBoard from '../components/NotificationBoard';
 import ScoreBoard from '../components/ScoreBoard';
 import MarketComponent from '../components/MarketComponent';
 import BaseInterface from './BaseInterface';
+import { BottomBar } from '../components/MyButton';
 
 class HomeScreen extends BaseInterface {
     constructor(props) {
         super(props);
         this.state = {
-            notificationVisible: true,
+            notificationVisible: false,
         };
         this.marketRef = React.createRef();
         this.notificationRef = React.createRef();
@@ -49,8 +50,10 @@ class HomeScreen extends BaseInterface {
                     <NotificationBoard ref={this.notificationRef}
                         navigation={navigation} modalVisible={this.state.notificationVisible}
                         onRequestClose={() => this.setState({ notificationVisible: false })}
+                        onRequestShow={(hasMessage) => this.setState({ notificationVisible: hasMessage })}
                     />
                 )}
+                <BottomBar navigation={navigation} selected={'Home'} />
             </View>
         );
     }
@@ -59,10 +62,9 @@ class HomeScreen extends BaseInterface {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        alignItems: 'center',
         justifyContent: 'center',
-        padding: 20,
-        paddingBottom: 50
+        paddingHorizontal: 20,
+        paddingVertical: 10,
     },
     title: {
         fontSize: 24,

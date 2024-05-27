@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import BaseInterface from './BaseInterface';
 import ProfileBoard from '../components/ProfileBoard';
 import UserRequests from '../components/UserRequests';
-import { SingleButton } from '../components/MyButton';
+import { BottomBar, SingleButton } from '../components/MyButton';
 
 class PersonalPage extends BaseInterface {
     constructor(props) {
@@ -37,6 +37,7 @@ class PersonalPage extends BaseInterface {
                     <SingleButton title="Loan" onPress={() => navigation.navigate('Post', {post_type: 'borrow'})} disable={false}/>
                     <SingleButton title="Invest" onPress={() => navigation.navigate('Post', {post_type: 'lend'})} disable={false}/>
                 </View>
+                <BottomBar navigation={navigation} selected={'PersonalPage'} />
             </View>
         );
     }
@@ -46,7 +47,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',
-        paddingButton: 10,
+        paddingVertical: 10,
     },
     buttonContainer: {
         flexDirection: 'row',

@@ -1,14 +1,81 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import LogoutIcon from '../assets/logout.png';
+import HomeIcon from '../assets/home.png';
+import ScoreIcon from '../assets/score.png';
+import MarketIcon from '../assets/market.png';
+import ProfileIcon from '../assets/profile.png';
+import { resetNavigator } from '../utils/ResetNavigator';
+import InputModal from './InputModel';
 
-const LogoutButton = ({ onPress }) => {
+const IPSetting = () => {
+  const [visibility, setVisibility] = React.useState(false);
+
+  return (
+    <TouchableOpacity onPress={() => {
+      setVisibility(true);
+    }} style={styles.logout}>
+      <InputModal modalVisible={visibility} onConfirm={(text) => {
+        console.log(text);
+        global.host = text.trim();
+        setVisibility(false);
+      }} onRequestClose={() => setVisibility(false)} 
+      title={"Enter server ip:"} 
+      placeholder={global.host}
+      />
+    </TouchableOpacity>
+  );
+};
+
+const IconButton = ({ onPress, image, selected }) => {
     return (
       <TouchableOpacity onPress={onPress}>
-        <Image source={LogoutIcon} style={styles.logout} />
+        <Image source={image} style={[styles.logout, selected ? 
+          {backgroundColor: 'rgba(0, 123, 255, 0.6)'} : {}]} />
       </TouchableOpacity>
     );
   };
+
+const BottomBar = ({ navigation, selected }) => {
+    return (
+      <View style={styles.buttonContainer}>
+        <HomeButton onPress={() => resetNavigator(navigation, 'Home')} selected={selected==='Home'} />
+        <MarketButton onPress={() => navigation.navigate('PersonalPage')} selected={selected==='PersonalPage'} />
+        <ProfileButton onPress={() => navigation.navigate('PersonalInfo')} selected={selected==='PersonalInfo'} />
+        <ScoreButton onPress={() => navigation.navigate('Score')} selected={selected==='Score'} />
+      </View>
+    );
+  }
+
+const LogoutButton = ({ onPress }) => {
+    return (
+      <IconButton onPress={onPress} image={LogoutIcon} />
+    );
+  };
+
+const HomeButton = ({ onPress, selected }) => {
+    return (
+      <IconButton onPress={onPress} image={HomeIcon} selected={selected}/>
+    );
+  }
+
+const ScoreButton = ({ onPress, selected }) => {
+    return (
+      <IconButton onPress={onPress} image={ScoreIcon} selected={selected}/>
+    );
+  }
+
+const MarketButton = ({ onPress, selected }) => {
+    return (
+      <IconButton onPress={onPress} image={MarketIcon} selected={selected}/>
+    );
+  }
+
+const ProfileButton = ({ onPress, selected }) => {
+    return (
+      <IconButton onPress={onPress} image={ProfileIcon} selected={selected}/>
+    );
+  }
 
 const MyButton = ({ title, onPress, disable}) => {
     return (
@@ -42,6 +109,11 @@ const styles = StyleSheet.create({
       alignItems: 'center', // Align children vertically in the center
       marginTop: 20,
     },
+    buttonContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-around',
+    },
     button: {
         margin: 10,
         paddingVertical: 10,
@@ -73,9 +145,11 @@ const styles = StyleSheet.create({
       width: 40,
       height: 40,
       borderRadius: 5,
-      margin: 10
+      padding: 2,
+      marginHorizontal: 10,
+      resizeMode: 'contain',
     },
   });
 
-  export { MyButton, TwoButtonsInline, SingleButton, LogoutButton};
+  export { MyButton, TwoButtonsInline, SingleButton, LogoutButton, BottomBar, IPSetting};
   

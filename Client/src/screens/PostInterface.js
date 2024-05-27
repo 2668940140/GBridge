@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, TextInput, Image, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Image, StyleSheet, ScrollView, TouchableOpacity,
+    ActivityIndicator} from 'react-native';
 import BaseConInterface from './BaseConInterface';
 import {NumberInput, LabelInput} from '../components/NumberInput';
 import { pickImage } from '../utils/ImagePicker';
 import { Picker } from '@react-native-picker/picker';
 import { TwoButtonsInline } from '../components/MyButton';
+import InputModal from '../components/InputModel';
 
 class PostInterface extends BaseConInterface {
     constructor(props) {
@@ -23,8 +25,24 @@ class PostInterface extends BaseConInterface {
             extra: null,
             loanType: '',
             isLoading: false,
-            isSubmitted: false
+            loading: true,
+            isSubmitted: false,
+            modalVisible: false,
         };
+        this.amountRef = React.createRef();
+        this.interestRef = React.createRef();
+        this.periodRef = React.createRef();
+        this.prompt = "Supposing you are an expert in financial consulting, now you are asked to suggest the user a certain " + post_type + " post.\n" + 
+        "Your response should be a single json:{\"amount\":Number,\"interest\":Number,\"period\":Number, \"loanType\":String,\"description\":String}\nThe unit of amount is $, it is a positive number.\nThe unit of interest is yearly interest rate, it is a float number between 0 to 1.\nThe unit of period is months, it is a positive integer.\nThere are altogether 3 types of loan: \"Full Payment\", \"Interest-Bearing\", \"Interest-Free\".\nPut your detailed description of the post in the description field, which should show the features of the post to attract other users to match. Most importantly, don't leak any user information!\n";
+    }
+
+    componentDidMount() {
+        this.establishConnection().then(() => {
+            this.askAdvice(null);
+        }
+        ).catch(() => {
+            this.establishConnectionFailure();
+        });
     }
     
     handleSubmit = () => {
@@ -52,31 +70,68 @@ class PostInterface extends BaseConInterface {
         }, 'Select Extra Info: ');
     }
 
+    askAdvice = (text) => {
+        this.setState({isLoading: true});
+        let prompt = this.prompt;
+        if(!(text === null || text.trim() === ''))
+            prompt += "The user's addition request is: " + text + "\n";
+        prompt += "Please give your advice for his "+ this.state.post_type +" post.\n" +
+         "His information is listed below:\n";
+        this.transferLayer.sendRequest({
+            type: "send_single_message_to_bot",
+            content: prompt,
+            extra: null
+        }, response => {
+            this.setState({isLoading: false, loading: false});
+            if (response.success && response.content !== null) {
+                const advice = JSON.parse(response.content);
+                this.setState({
+                    loanType: advice.loanType,
+                    description: advice.description ? advice.description : 'None',
+                });
+                this.amountRef.current?.handleInputChange(advice.amount.toString());
+                this.periodRef.current?.handleInputChange(advice.period.toString());
+                this.interestRef.current?.handleInputChange(advice.interest.toString());
+                this.displaySuccessMessage('Advice requested successfully.');
+            } else {
+                this.displayErrorMessage('Failed to request advice.');
+            }
+        }
+        );
+        this.setState({modalVisible : false});
+    }
+
     render() {
-        const { post_type, poster, amount, interest, period, description, loanType, isLoading, isSubmitted, extra } = this.state;
+        const { post_type, poster, amount, interest, period, description, loanType, isLoading, isSubmitted, extra, loading } = this.state;
         const { amountValid, interestValid, periodValid } = this.state;
+        if(loading)
+            return super.render();
         return (
             <ScrollView style={styles.container}>
                 <Text style={styles.title}>{post_type === 'lend' ? "Investment" : "Loan Application"} Details</Text>
+                <TouchableOpacity style={styles.button} onPress={() => {this.setState({modalVisible : true})}}>
+                    <Text style={styles.picText}>Ask advice from GPT</Text>
+                </TouchableOpacity>
+                <InputModal modalVisible={this.state.modalVisible} onRequestClose={() => {this.setState({modalVisible : false})}} onConfirm={this.askAdvice} title={"Enter your addition request:"} placeholder={"Here's an example: Want to get payback in 2 years."} multiline={true} canNone={true}/>
                 <LabelInput iniValue={poster} prompt="Poster name" updateValue={(value) => { this.setState({ poster: value }) }} />
                 <NumberInput iniValue={amount.toString()} prompt="Amount" updateValue={(value) => {
                     if(value !== null)
                         this.setState({ amount: value, amountValid: true });
                     else
                         this.setState({ amountValid: false });
-                }} />
+                }} ref={this.amountRef}/>
                 <NumberInput iniValue={interest.toString()} prompt="Interest" updateValue={(value) => {
                     if(value !== null)
                         this.setState({ interest: value, interestValid: true });
                     else
                         this.setState({ interestValid: false });
-                }} tail="/mouth" />
+                }} tail="/mouth" ref={this.interestRef}/>
                 <NumberInput iniValue={period.toString()} prompt="Lock Period" updateValue={(value) => {
                     if(value !== null)
                         this.setState({ period: parseInt(value), periodValid: true });
                     else
                         this.setState({ periodValid: false });
-                }} tail="/mouth" />                
+                }} tail="/mouth" ref={this.periodRef}/>                
                 <View style={styles.pickerContainer}>
                 <Picker
                     selectedValue={loanType}
@@ -84,7 +139,7 @@ class PostInterface extends BaseConInterface {
                     onValueChange={(itemValue, itemIndex) => this.setState({ loanType: itemValue })}
                     enabled={!isSubmitted}>
                     <Picker.Item label="Select Loan Type" value="" />
-                    <Picker.Item label="Full Payment" value="Lump Sum Payment" />
+                    <Picker.Item label="Lump Sum Payment" value="Full Payment" />
                     <Picker.Item label="Interest-Bearing Installments" value="Interest-Bearing" />
                     <Picker.Item label="Interest-Free Installments" value="Interest-Free" />
                 </Picker>
