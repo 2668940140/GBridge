@@ -471,6 +471,11 @@ impl main_server::MainServer
     income_annum.is_none() || loan_amount.is_none() || loan_term.is_none() ||
     cibil_score.is_none() || residential_assets_value.is_none() || commercial_assets_value.is_none() ||
     luxury_assets_value.is_none() || bank_asset_value.is_none() {
+      println!("{}{}{}{}{}{}{}{}{}{}{}",
+      no_of_dependents.is_none(), graduated.is_none(), self_employed.is_none(),
+      income_annum.is_none(), loan_amount.is_none(), loan_term.is_none(),
+      cibil_score.is_none(), residential_assets_value.is_none(), commercial_assets_value.is_none(),
+      luxury_assets_value.is_none(), bank_asset_value.is_none());
       return Err(());
     }
 
