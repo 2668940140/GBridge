@@ -724,7 +724,7 @@ impl main_server::MainServer
     }
 
     let entry = doc! {
-      "leader": lender,
+      "lender": lender,
       "borrower": borrower,
       "amount": item.get("amount").unwrap().as_f64().unwrap(),
       "interest": item.get("interest").unwrap().as_f64().unwrap(),
