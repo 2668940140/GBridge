@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, Image, StyleSheet, ScrollView, TouchableOpacity,
-    ActivityIndicator} from 'react-native';
+    ActivityIndicator, Alert} from 'react-native';
 import BaseConInterface from './BaseConInterface';
 import {NumberInput, LabelInput} from '../components/NumberInput';
 import { pickImage } from '../utils/ImagePicker';
@@ -89,10 +89,13 @@ class PostInterface extends BaseConInterface {
                             extra: null
                         }, (response) => {
                             if (response.success && response.content !== null) {
-                                if(response.content.score < 0.5)
+                                if(response.content.score < 0.7)
                                     this.showWarning('The estimated score is too low for the loan.');
+                                else
+                                    this.handleSubmit();
                             }
-                            this.handleSubmit();
+                            else
+                                this.handleSubmit();
                         });
                     }
                 });
