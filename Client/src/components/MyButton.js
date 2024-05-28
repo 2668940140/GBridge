@@ -5,6 +5,7 @@ import HomeIcon from '../assets/home.png';
 import ScoreIcon from '../assets/score.png';
 import MarketIcon from '../assets/market.png';
 import ProfileIcon from '../assets/profile.png';
+import BellIcon from '../assets/bell.png';
 import { resetNavigator } from '../utils/ResetNavigator';
 import InputModal from './InputModel';
 
@@ -46,6 +47,12 @@ const BottomBar = ({ navigation, selected }) => {
       </View>
     );
   }
+
+const NotificationButton = ({ onPress }) => {
+    return (
+      <IconButton onPress={onPress} image={BellIcon} />
+    );
+  };
 
 const LogoutButton = ({ onPress }) => {
     return (
@@ -151,5 +158,6 @@ const styles = StyleSheet.create({
     },
   });
 
-  export { MyButton, TwoButtonsInline, SingleButton, LogoutButton, BottomBar, IPSetting};
+  export { MyButton, TwoButtonsInline, SingleButton, LogoutButton, BottomBar,
+     IPSetting, NotificationButton};
   

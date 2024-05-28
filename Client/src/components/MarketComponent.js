@@ -183,13 +183,15 @@ class MarketComponent extends BaseConComponent {
                     behavior={Platform.OS === "ios" ? "padding" : "height"}
                     style={{ flex: 1 }}
                 >
+                <View style={styles.list}>
                     <FlatList
-                    style={styles.list}
+                    contentContainerStyle={styles.contentContainer}
                     data={items}
                     renderItem={this.renderItem}
                     keyExtractor={item => item.id}
                     ListEmptyComponent={this.renderEmptyComponent}
                     />
+                </View>
                 </KeyboardAvoidingView>
                 { inputModalVisible && (
                     <InputModal
@@ -290,6 +292,10 @@ const styles = StyleSheet.create({
         width: windowWidth - 70,
         padding: 15,
         marginVertical: 5
+    },
+    contentContainer: {
+        padding:5,
+        paddingBottom: 10,
     },
     emptyContainer: {
         fontWeight: "bold",

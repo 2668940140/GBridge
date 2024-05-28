@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import BaseComponent from './BaseComponent';
 
 class NumberInput extends BaseComponent {
@@ -75,6 +75,35 @@ const LabelInput = ({iniValue, prompt, tail, updateValue}) => {
     );
   };
 
+  const YesNoChoice = ({ prompt, updateValue, iniValue }) => {
+    const [selectedOption, setSelectedOption] = useState(iniValue);
+  
+    const handlePress = (option) => {
+      setSelectedOption(option);
+      updateValue(option);
+    };
+  
+    return (
+      <View style={styles.container}>
+        <Text style={styles.prompt}>{prompt + ":"}</Text>
+        <View style={styles.optionsContainer}>
+          <TouchableOpacity
+            style={[styles.option, selectedOption && styles.selectedOption]}
+            onPress={() => handlePress(true)}
+          >
+            <Text style={[styles.optionText, selectedOption && {color: 'white'}]}>Yes</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.option, !selectedOption && styles.selectedOption]}
+            onPress={() => handlePress(false)}
+          >
+            <Text style={[styles.optionText, !selectedOption && {color: 'white'}]}>No</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   const styles = StyleSheet.create({
     container: {
       alignItems: 'center',
@@ -85,6 +114,26 @@ const LabelInput = ({iniValue, prompt, tail, updateValue}) => {
     inputContainer: {
       margin: 10,
       width: '55%',
+    },
+    optionsContainer: {
+      flexDirection: 'row',
+      borderWidth: 1,
+      borderColor: '#ccc',
+      borderRadius: 5,
+      margin: 10,
+      width: '55%',
+    },
+    option: {
+      flex: 1,
+      padding: 10,
+      backgroundColor: '#fff',
+    },
+    selectedOption: {
+      backgroundColor: 'rgba(0, 123, 255, 0.9)',
+    },
+    optionText: {
+      color: 'black',
+      textAlign: 'center',
     },
     input: {
         borderColor: 'gray',
@@ -119,5 +168,5 @@ const LabelInput = ({iniValue, prompt, tail, updateValue}) => {
     }
   });
   
-  export { NumberInput, LabelInput };
+  export { NumberInput, LabelInput, YesNoChoice };
   

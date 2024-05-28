@@ -35,15 +35,90 @@ class PostInterface extends BaseConInterface {
         this.prompt = "Supposing you are an expert in financial consulting, now you are asked to suggest the user a certain " + post_type + " post.\n" + 
         "Your response should be a single json:{\"amount\":Number,\"interest\":Number,\"period\":Number, \"loanType\":String,\"description\":String}\nThe unit of amount is $, it is a positive number.\nThe unit of interest is yearly interest rate, it is a float number between 0 to 1.\nThe unit of period is months, it is a positive integer.\nThere are altogether 3 types of loan: \"Full Payment\", \"Interest-Bearing\", \"Interest-Free\".\nPut your detailed description of the post in the description field, which should show the features of the post to attract other users to match. Most importantly, don't leak any user information!\n";
     }
+    
+    checkPost = () => {
+        this.transferLayer.sendRequest({
+            type: "get_user_info",
+            content: [
+                "income",
+                "no_of_dependents",
+                "graduated",
+                "self_employed",
+                "residential_assets_value",
+                "commercial_assets_value",
+                "luxury_assets_value",
+                "bank_asset_value"
+            ],
+            extra:null
+        }, (response) => {
+            if (response.success) {
+                const { income, no_of_dependents, graduated, self_employed, residential_assets_value, 
+                    commercial_assets_value, luxury_assets_value, bank_asset_value
+                } = response.content;
+                const { amount, period } = this.state;
+                let score = 0.5, income_annum = income * 12, total_assets = residential_assets_value + commercial_assets_value + luxury_assets_value + bank_asset_value, years = period / 12;
+                this.transferLayer.sendRequest({
+                    type: "estimate_score",
+                    content: {},
+                    extra: null
+                }, (response) => {
+                    if (response.success && response.content !== null) 
+                        score = response.content.score;
+                    score = parseInt(score * 1000);
+                    if(this.state.post_type === 'lend'){
+                        if(amount > total_assets * 0.1)
+                            this.showWarning('The amount is over 10% of your assets.');
+                        else if(score < 700)
+                            this.showWarning('Your credit score is too low for the investment.');
+                        else
+                            this.handleSubmit();
+                    }
+                    else {
+                        let info = {income_annum, no_of_dependents, graduated, self_employed, 
+                            residential_assets_value, commercial_assets_value, luxury_assets_value, bank_asset_value, 
+                            loan_amount: amount, loan_term: years, cibil_score: score
+                        };
+                        for (const key in info)
+                            if(info[key] === null)
+                                info[key] = 0;
+                        if( info.graduated === 0) info.graduated = false;
+                        if( info.self_employed === 0) info.self_employed = false;
+                        this.transferLayer.sendRequest({
+                            type: "borrow_post_estimate_score",
+                            content: info,
+                            extra: null
+                        }, (response) => {
+                            if (response.success && response.content !== null) {
+                                if(response.content.score < 0.5)
+                                    this.showWarning('The estimated score is too low for the loan.');
+                            }
+                            this.handleSubmit();
+                        });
+                    }
+                });
+            } });
+      };
 
-    componentDidMount() {
-        this.establishConnection().then(() => {
-            this.askAdvice(null);
+    showWarning = (message) => {
+        Alert.alert(
+            "Post Warning",
+            message,
+            [
+              {
+                text: "Cancel",
+                onPress: () => console.log("Submission canceled"),
+                style: "cancel"
+              },
+              { 
+                text: "Continue", 
+                onPress: () => {
+                  this.handleSubmit();
+                }
+              }
+            ],
+            { cancelable: false }
+          );
         }
-        ).catch(() => {
-            this.establishConnectionFailure();
-        });
-    }
     
     handleSubmit = () => {
         const { poster, amount, interest, period, description, loanType, extra } = this.state;
@@ -161,7 +236,7 @@ class PostInterface extends BaseConInterface {
                     <TwoButtonsInline
                         title1="Submit"
                         title2="Back"
-                        onPress1={this.handleSubmit}
+                        onPress1={this.checkPost}
                         onPress2={() => this.props.navigation.goBack()}
                         disable1={!amountValid || !interestValid || !periodValid || !loanType || isLoading || isSubmitted}
                         disable2={isLoading}  />

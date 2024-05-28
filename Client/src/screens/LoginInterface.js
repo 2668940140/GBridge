@@ -6,7 +6,7 @@ import { resetNavigator } from '../utils/ResetNavigator';
 import EmailInput from '../components/EmailInput';
 import VerificationCodeInput from '../components/VerificationCodeInput';
 import { SingleButton } from '../components/MyButton';
-import { AsynLoad, AsynSave } from '../utils/AsynSL';
+import { AsynLoad, AsynSave, AsynRemove } from '../utils/AsynSL';
 import CheckBox from '@react-native-community/checkbox';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 
@@ -37,6 +37,8 @@ class LoginInterface extends BaseConInterface {
                 const portrait = await AsynLoad('portrait');
                 this.setState({ username: username, password: password });
                 gUserIcon = portrait;
+                gUsername = username;
+                gPassword = password;
             }
             this.setState({ loading: false, saveAccount: saveAccount});
         }).catch((error) => {
@@ -117,7 +119,15 @@ class LoginInterface extends BaseConInterface {
                 if(gSaveAccount === 'true') {
                     await AsynSave('username', gUsername);
                     await AsynSave('password', gPassword);
-                    await AsynSave('portrait', gUserIcon);
+                    if(gUserIcon)
+                        await AsynSave('portrait', gUserIcon);
+                    else
+                        await AsynRemove('portrait');
+                }
+                else {
+                    await AsynRemove('username');
+                    await AsynRemove('password');
+                    await AsynRemove('portrait');
                 }
                 this.displaySuccessMessage("Login Successful");
                 resetNavigator(this.props.navigation, 'Home'); 
@@ -169,9 +179,10 @@ class LoginInterface extends BaseConInterface {
         const { activeTab, activeVerification, username, password, emailName, emailDomain, loading, saveAccount } = this.state;
         if(loading)
             return super.render();
+
         return (
             <View style={styles.container}>
-                <Image source={gUserIcon ? { uri: gUserIcon } : DefaultUserIcon} style={styles.icon} />
+                <Image source={gUserIcon && username === gUsername ? { uri: gUserIcon } : DefaultUserIcon} style={styles.icon} />
                 <View style={styles.tabContainer}>
                     <TouchableOpacity 
                         style={[styles.tab, activeTab === 'username' && styles.activeTab]} 

@@ -225,24 +225,28 @@ class UserRequests extends BaseConComponent {
                         <Text style={styles.tabText}>Invest</Text>
                     </TouchableOpacity>
                 </View>
-                <Text style={styles.header}>{type} Posts</Text>
-                <Text style={[styles.header, {fontSize : 16}]}>score - amount - period {"(/momth)"} - date</Text>
-                <FlatList
-                    data={posts[type]}
-                    renderItem={this.renderRequest}
-                    keyExtractor={item => item.id }
-                    style={styles.list}
-                    ListEmptyComponent={this.renderEmptyComponent}
-                />
-                <Text style={styles.header}>{type} Deals</Text>
-                <Text style={[styles.header, {fontSize : 16}]}>amount - period {"(/momth)"} - date</Text>
-                <FlatList
-                    data={deals[type]}
-                    renderItem={this.renderRequest}
-                    keyExtractor={item => item.id }
-                    style={styles.list}
-                    ListEmptyComponent={this.renderEmptyComponent}
-                />
+                <Text style={styles.header}>{type === 'invest' ? 'Invest' : 'Loan'} Posts</Text>
+                <Text style={[styles.header, {fontSize : 16}]}>score - amount - period {"(/month)"} - date</Text>
+                <View style={styles.list}>
+                    <FlatList
+                        data={posts[type]}
+                        renderItem={this.renderRequest}
+                        keyExtractor={item => item.id }
+                        contentContainerStyle={styles.contentContainer}
+                        ListEmptyComponent={this.renderEmptyComponent}
+                    />
+                </View>
+                <Text style={styles.header}>{type === 'invest' ? 'Invest' : 'Loan'} Deals</Text>
+                <Text style={[styles.header, {fontSize : 16}]}>amount - period {"(/month)"} - date</Text>
+                <View style={styles.list}>
+                    <FlatList
+                        data={deals[type]}
+                        renderItem={this.renderRequest}
+                        keyExtractor={item => item.id }
+                        contentContainerStyle={styles.contentContainer}
+                        ListEmptyComponent={this.renderEmptyComponent}
+                    />
+                </View>
                 {showModal && selectedRequest && (
                 <RequestDetail
                     visible={showModal}
@@ -295,7 +299,12 @@ const styles = StyleSheet.create({
         flex: 1,
         borderBlockColor: 'black',
         borderWidth: 1,
-        margin: 5
+        margin: 5,
+        paddingVertical: 10,
+    },
+    contentContainer: {
+        padding: 5, 
+        paddingBottom: 10,
     },
     emptyContainer: {
         fontWeight: "bold",

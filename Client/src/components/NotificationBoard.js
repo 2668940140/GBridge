@@ -14,7 +14,8 @@ class NotificationBoard extends BaseConComponent {
         this.state = {
             loans: [],
             messages: [],
-            loading: true
+            loading: true,
+            force: false
         };
     }
 
@@ -80,9 +81,10 @@ class NotificationBoard extends BaseConComponent {
                 this.setState({ messages: messages }, () => {
                     this.setState({ loading: false });
                     console.log('Fetched messages');
-                    this.props.onRequestShow(this.state.messages.length > 0 ||
+                    this.props.onRequestShow(this.state.force || this.state.messages.length > 0 ||
                         this.state.loans.length > 0
                     );
+                    this.setState({ force: false });
                 });
             } else {
                 this.displayErrorMessage('Failed to fetch messages.');
@@ -109,7 +111,7 @@ class NotificationBoard extends BaseConComponent {
                 })
                 const currentDate = new Date();
                 const loanDeals = items.filter(req => {
-                    return req.type === 'borrow' && differenceInDays(req.dueDate, currentDate) < 15;
+                    return req.borrower_username === gUsername && differenceInDays(req.dueDate, currentDate) < 15;
                 });
                 this.setState({ loans : loanDeals}, () => { 
                     this.fetchMessages();
@@ -150,7 +152,19 @@ class NotificationBoard extends BaseConComponent {
     render() {
         const { loans, messages, loading } = this.state;
         const { modalVisible, onRequestClose } = this.props;
-        if (loading) return this.renderLoading();
+        if(loading) return (
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={onRequestClose}>
+                <View style={styles.container}>
+                    <View style={styles.modalView} >
+                        <Text style={styles.title}>Loading...</Text>
+                    </View>
+                </View>
+            </Modal>
+        )
 
         return (
             <Modal
