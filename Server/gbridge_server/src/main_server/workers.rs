@@ -460,7 +460,7 @@ impl main_server::MainServer
     let self_employed = content.get("self_employed").and_then(|s| s.as_bool());
     let income_annum = content.get("income_annum").and_then(|i| i.as_f64());
     let loan_amount = content.get("loan_amount").and_then(|l| l.as_f64());
-    let loan_term = content.get("loan_term").and_then(|l| l.as_i64());
+    let loan_term = content.get("loan_term").and_then(|l| l.as_f64());
     let cibil_score = content.get("cibil_score").and_then(|c| c.as_f64());
     let residential_assets_value = content.get("residential_assets_value").and_then(|r| r.as_f64());
     let commercial_assets_value = content.get("commercial_assets_value").and_then(|c| c.as_f64());

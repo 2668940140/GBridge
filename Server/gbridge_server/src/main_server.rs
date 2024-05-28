@@ -1,5 +1,5 @@
 mod data_structure;
-mod utils;
+pub mod utils;
 mod database;
 mod session;
 mod workers;
