@@ -1,32 +1,32 @@
 // src/screens/PersonalSettings.js
 import React from 'react';
-import { View, ScrollView, Text, StyleSheet, Image, TouchableOpacity} from 'react-native';
+import { View, ScrollView, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { ActivityIndicator } from 'react-native';
 import { pickCropImage } from '../utils/ImagePicker';
 import BaseConInterface from './BaseConInterface';
 import { resetNavigator } from '../utils/ResetNavigator';
 import DefaultUserIcon from '../assets/default_user_icon.png';
 import { TwoButtonsInline } from '../components/MyButton';
-import { NumberInput, YesNoChoice } from '../components/NumberInput';
+import { NumberInput, YesNoChoice } from '../components/InfoInputs';
 import { AsynSave, AsynLoad } from '../utils/AsynSL';
 
 class PersonalSettings extends BaseConInterface {
     constructor(props) {
         super(props);
         const { userIcon = null,
-                cash = Number(0), 
-                income = Number(0), 
-                expenditure = Number(0), 
-                debt = Number(0), 
-                assets = Number(0),
-                no_of_dependents = Number(0),
-                graduated = false,
-                self_employed = false,
-                residential_assets_value = Number(0),
-                commercial_assets_value = Number(0),
-                luxury_assets_value = Number(0),
-                bank_asset_value = Number(0)
-            } = this.props.route.params || {};
+            cash = Number(0),
+            income = Number(0),
+            expenditure = Number(0),
+            debt = Number(0),
+            assets = Number(0),
+            no_of_dependents = Number(0),
+            graduated = false,
+            self_employed = false,
+            residential_assets_value = Number(0),
+            commercial_assets_value = Number(0),
+            luxury_assets_value = Number(0),
+            bank_asset_value = Number(0)
+        } = this.props.route.params || {};
         this.state = {
             userIcon: userIcon,
             newIcon: null,
@@ -58,11 +58,11 @@ class PersonalSettings extends BaseConInterface {
     }
 
     handleConfirmPress = () => {
-        const { newIcon, cash, income, expenditure, debt, assets, no_of_dependents, graduated,self_employed, residential_assets_value, commercial_assets_value, luxury_assets_value, bank_asset_value } = this.state;
+        const { newIcon, cash, income, expenditure, debt, assets, no_of_dependents, graduated, self_employed, residential_assets_value, commercial_assets_value, luxury_assets_value, bank_asset_value } = this.state;
         if (cash !== null && income !== null && expenditure !== null && debt !== null && assets !== null && no_of_dependents !== null && graduated !== null && self_employed !== null && residential_assets_value !== null && commercial_assets_value !== null && luxury_assets_value !== null && bank_asset_value !== null || newIcon) {
             this.setState({ isLoading: true });  // Start loading
-            let content ={};
-            if(newIcon){
+            let content = {};
+            if (newIcon) {
                 content['portrait'] = newIcon;
             }
             content['cash'] = cash;
@@ -91,14 +91,13 @@ class PersonalSettings extends BaseConInterface {
         const { newIcon } = this.state;
         this.setState({ isLoading: false });  // Stop loading
         if (response.success) {
-            if(newIcon)
-            {
+            if (newIcon) {
                 gUserIcon = newIcon;
-                this.setState({ userIcon: newIcon}, () => {
-                    this.setState({ newIcon: null});
+                this.setState({ userIcon: newIcon }, () => {
+                    this.setState({ newIcon: null });
                     this.displaySuccessMessage('Profile updated successfully!');
                 });
-            }else{
+            } else {
                 this.displaySuccessMessage('Profile updated successfully!');
             }
         } else {
@@ -108,12 +107,12 @@ class PersonalSettings extends BaseConInterface {
 
     componentWillUnmount() {
         AsynLoad('saveAccount').then((result) => {
-          if (result !== null && result !== false) {
-            AsynSave('portrait', gUserIcon).then(() => {
-              console.log('Portrait saved');
-              super.componentWillUnmount();
-            });
-          }
+            if (result !== null && result !== 'false') {
+                AsynSave('portrait', gUserIcon).then(() => {
+                    console.log('Portrait saved');
+                    super.componentWillUnmount();
+                });
+            }
         });
     }
 
@@ -123,55 +122,55 @@ class PersonalSettings extends BaseConInterface {
 
     render() {
         const { loading, incomeValid, cashValid, expenditureValid, assetsValid, debtValid } = this.state;
-        const {cash, income, expenditure, debt, assets,
-            no_of_dependents, graduated, self_employed, residential_assets_value, 
+        const { cash, income, expenditure, debt, assets,
+            no_of_dependents, graduated, self_employed, residential_assets_value,
             commercial_assets_value, luxury_assets_value, bank_asset_value
-         } = this.state;
+        } = this.state;
         console.log(this.state);
         console.log(this.props.route.params);
         let userIcon = this.state.newIcon || this.state.userIcon;
         if (loading) return super.render();  // Show loading indicator
-    
+
         return (
             <View style={styles.container}>
                 <Image source={userIcon ? { uri: userIcon } : DefaultUserIcon} style={styles.icon} />
-                <TouchableOpacity onPress={()=> pickCropImage(this.setImage)}>
+                <TouchableOpacity onPress={() => pickCropImage(this.setImage)}>
                     <Text style={styles.picText}>Upload New Icon</Text>
                 </TouchableOpacity>
                 <ScrollView style={styles.infoContainer} contentContainerStyle={{ justifyContent: 'center', alignItems: 'center', paddingBottom: 20 }}>
                     <NumberInput iniValue={cash?.toString() || "null"} prompt="Cash" updateValue={(value) => {
-                        if(value !== null)
+                        if (value !== null)
                             this.setState({ cash: value, cashValid: true });
                         else
                             this.setState({ cashValid: false });
                     }} />
                     <NumberInput iniValue={income?.toString() || "null"} prompt="Income" updateValue={(value) => {
-                        if(value !== null)
-                            this.setState({ income: value, incomeValid: true  });
+                        if (value !== null)
+                            this.setState({ income: value, incomeValid: true });
                         else
                             this.setState({ incomeValid: false });
                     }} tail="/mouth" />
                     <NumberInput iniValue={expenditure?.toString() || "null"} prompt="Expenditure" updateValue={(value) => {
-                        if(value !== null)
-                            this.setState({ expenditure: value, expenditureValid: true  });
+                        if (value !== null)
+                            this.setState({ expenditure: value, expenditureValid: true });
                         else
                             this.setState({ expenditureValid: false });
-                    }} tail="/mouth"/>
+                    }} tail="/mouth" />
                     <NumberInput iniValue={debt?.toString() || "null"} prompt="Debt" updateValue={(value) => {
-                        if(value !== null)
-                            this.setState({ debt: value, debtValid: true  });
+                        if (value !== null)
+                            this.setState({ debt: value, debtValid: true });
                         else
                             this.setState({ debtValid: false });
                     }} />
                     <NumberInput iniValue={assets?.toString() || "null"} prompt="Assets" updateValue={(value) => {
-                        if(value !== null)
-                            this.setState({ assets: value, assetsValid: true  });
+                        if (value !== null)
+                            this.setState({ assets: value, assetsValid: true });
                         else
                             this.setState({ assetsValid: false });
                     }} />
                     <NumberInput iniValue={no_of_dependents?.toString() || "null"} prompt="Number of Dependents" updateValue={(value) => {
-                        if(value !== null)
-                            this.setState({ no_of_dependents: value, no_of_dependentsValid: true  });
+                        if (value !== null)
+                            this.setState({ no_of_dependents: value, no_of_dependentsValid: true });
                         else
                             this.setState({ no_of_dependentsValid: false });
                     }} />
@@ -182,26 +181,26 @@ class PersonalSettings extends BaseConInterface {
                         this.setState({ self_employed: value });
                     }} />
                     <NumberInput iniValue={residential_assets_value?.toString() || "null"} prompt="Residential Assets Value" updateValue={(value) => {
-                        if(value !== null)
-                            this.setState({ residential_assets_value: value, residential_assets_valueValid: true  });
+                        if (value !== null)
+                            this.setState({ residential_assets_value: value, residential_assets_valueValid: true });
                         else
                             this.setState({ residential_assets_valueValid: false });
                     }} />
                     <NumberInput iniValue={commercial_assets_value?.toString() || "null"} prompt="Commercial Assets Value" updateValue={(value) => {
-                        if(value !== null)
-                            this.setState({ commercial_assets_value: value, commercial_assets_valueValid: true  });
+                        if (value !== null)
+                            this.setState({ commercial_assets_value: value, commercial_assets_valueValid: true });
                         else
                             this.setState({ commercial_assets_valueValid: false });
                     }} />
                     <NumberInput iniValue={luxury_assets_value?.toString() || "null"} prompt="Luxury Assets Value" updateValue={(value) => {
-                        if(value !== null)
-                            this.setState({ luxury_assets_value: value, luxury_assets_valueValid: true  });
+                        if (value !== null)
+                            this.setState({ luxury_assets_value: value, luxury_assets_valueValid: true });
                         else
                             this.setState({ luxury_assets_valueValid: false });
                     }} />
                     <NumberInput iniValue={bank_asset_value?.toString() || "null"} prompt="Bank Asset Value" updateValue={(value) => {
-                        if(value !== null)
-                            this.setState({ bank_asset_value: value, bank_asset_valueValid: true  });
+                        if (value !== null)
+                            this.setState({ bank_asset_value: value, bank_asset_valueValid: true });
                         else
                             this.setState({ bank_asset_valueValid: false });
                     }} />
@@ -214,7 +213,7 @@ class PersonalSettings extends BaseConInterface {
             </View>
         );
     }
-}    
+}
 
 const styles = StyleSheet.create({
     container: {

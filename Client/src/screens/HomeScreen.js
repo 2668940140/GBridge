@@ -1,5 +1,5 @@
 import React from 'react';
-import {Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 import ProfileBoard from '../components/ProfileBoard';
 import NotificationBoard from '../components/NotificationBoard';
 import ScoreBoard from '../components/ScoreBoard';
@@ -45,21 +45,21 @@ class HomeScreen extends BaseInterface {
                     <ProfileBoard navigation={navigation} targetScreen={'PersonalPage'} />
                     <ScoreBoard navigation={navigation} targetScreen={'Score'} ref={this.scoreRef} />
                     <NotificationButton onPress={() => {
-                            if (this.notificationRef && this.notificationRef.current) {
-                                this.notificationRef.current.setState({ force: true, loading: true},
-                                    () => this.setState({ notificationVisible: true })
-                                );
-                                this.notificationRef.current.fetchLoans();
-                            }
-                        }} />
+                        if (this.notificationRef && this.notificationRef.current)
+                            this.notificationRef.current.setState({ force: true, loading: true },
+                                () => {
+                                    this.setState({ notificationVisible: true });
+                                    this.notificationRef.current.fetchLoans();
+                                });
+                    }} />
                 </View>
-                <MarketComponent navigation={navigation} ref={this.marketRef}/>
-                    <NotificationBoard ref={this.notificationRef}
-                        navigation={navigation} modalVisible={this.state.notificationVisible}
-                        style={{ display: this.state.notificationVisible ? 'flex' : 'none' }}
-                        onRequestClose={() => this.setState({ notificationVisible: false })}
-                        onRequestShow={(hasMessage) => this.setState({ notificationVisible: hasMessage })}
-                    />
+                <MarketComponent navigation={navigation} ref={this.marketRef} />
+                <NotificationBoard ref={this.notificationRef}
+                    navigation={navigation} modalVisible={this.state.notificationVisible}
+                    style={{ display: this.state.notificationVisible ? 'flex' : 'none' }}
+                    onRequestClose={() => this.setState({ notificationVisible: false })}
+                    onRequestShow={(hasMessage) => this.setState({ notificationVisible: hasMessage })}
+                />
                 <BottomBar navigation={navigation} selected={'Home'} />
             </View>
         );

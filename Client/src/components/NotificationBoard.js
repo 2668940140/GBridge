@@ -21,51 +21,41 @@ class NotificationBoard extends BaseConComponent {
 
     confirmReading = (item) => {
         Alert.alert(
-          "Confirm Reading", // Dialog Title
-          "You make sure you have receive the notification?", // Dialog Message
-          [
-            {
-              text: "Cancel",
-              onPress: () => console.log("Logout canceled"),
-              style: "cancel"
-            },
-            { 
-              text: "Read", 
-              onPress: () => {
-                this.transferLayer.sendRequest({
-                    type: "delete_notification",
-                    content: {
-                        _id : item._id
+            "Confirm Reading", // Dialog Title
+            "You make sure you have receive the notification?", // Dialog Message
+            [
+                {
+                    text: "Cancel",
+                    onPress: () => console.log("Logout canceled"),
+                    style: "cancel"
+                },
+                {
+                    text: "Read",
+                    onPress: () => {
+                        this.transferLayer.sendRequest({
+                            type: "delete_notification",
+                            content: {
+                                _id: item._id
+                            }
+                        }, response => {
+                            if (response.success) {
+                                console.log("Delete notification");
+                                this.fetchMessages();
+                            } else {
+                                this.displayErrorMessage('Failed to delete message.');
+                            }
+                        }).catch(() => {
+                            this.displayErrorMessage('Failed to delete message.');
+                        });
                     }
-                }, response => {
-                    if (response.success) {
-                        console.log("Delete notification");
-                        this.fetchMessages();
-                    } else {
-                        this.displayErrorMessage('Failed to delete message.');
-                    }
-                }).catch(() => {
-                    this.displayErrorMessage('Failed to delete message.');
-                });
-              }
-            }
-          ],
-          { cancelable: true } 
+                }
+            ],
+            { cancelable: true }
         );
-      };
-
-    componentDidMount() {
-        this.establishConnection().then(() => {
-            this.fetchLoans();
-        }).catch(error => {
-            this.setState({ loading: false });
-            this.displayErrorMessage("Failed to connect to server: " + error.message);
-        });
-    }
+    };
 
     fetchMessages = () => {
-        if(! this.transferLayer || this.transferLayer.checkConnection() === false)
-        {
+        if (!this.transferLayer || this.transferLayer.checkConnection() === false) {
             console.log('No connection to server.');
             return;
         }
@@ -74,9 +64,9 @@ class NotificationBoard extends BaseConComponent {
             extra: null
         }, response => {
             if (response.success) {
-                if(!response.content ) return;
+                if (!response.content) return;
                 const messages = response.content.filter(msg => msg.receiver === gUsername)
-                .map((msg, index) => {return {...msg, id: index}});
+                    .map((msg, index) => { return { ...msg, id: index } });
 
                 this.setState({ messages: messages }, () => {
                     this.setState({ loading: false });
@@ -95,35 +85,40 @@ class NotificationBoard extends BaseConComponent {
     };
 
     fetchLoans = () => {
-        this.transferLayer.sendRequest({
-            type: "get_user_deals",
-            extra: null
-        }, response => {
-            if (response.success) {
-                if(!response.content) return;
-                let items = parseItems(response.content);
-                items = items.map(item => {
-                    return {
-                        ...item,
-                        dueDate: addDays(new Date(item.created_time), { days: 30 * item.period})
-                        .toLocaleDateString()
-                    }
-                })
-                const currentDate = new Date();
-                const loanDeals = items.filter(req => {
-                    return req.borrower_username === gUsername && differenceInDays(req.dueDate, currentDate) < 15;
-                });
-                this.setState({ loans : loanDeals}, () => { 
-                    this.fetchMessages();
-                    console.log('Fetched posts and deals');
-                });
-            } else {
+        this.establishConnection().then(() => {
+            this.transferLayer.sendRequest({
+                type: "get_user_deals",
+                extra: null
+            }, response => {
+                if (response.success) {
+                    if (!response.content) return;
+                    let items = parseItems(response.content);
+                    items = items.map(item => {
+                        return {
+                            ...item,
+                            dueDate: addDays(new Date(item.created_time), { days: 30 * item.period })
+                                .toLocaleDateString()
+                        }
+                    })
+                    const currentDate = new Date();
+                    const loanDeals = items.filter(req => {
+                        return req.borrower_username === gUsername && differenceInDays(req.dueDate, currentDate) < 15;
+                    });
+                    this.setState({ loans: loanDeals }, () => {
+                        this.fetchMessages();
+                        console.log('Fetched posts and deals');
+                    });
+                } else {
+                    this.displayErrorMessage('Failed to fetch deals.');
+                    this.setState({ loading: false });
+                }
+            }).catch(() => {
                 this.displayErrorMessage('Failed to fetch deals.');
                 this.setState({ loading: false });
-            }
-        }).catch(() => {
-            this.displayErrorMessage('Failed to fetch deals.');
+            });
+        }).catch(error => {
             this.setState({ loading: false });
+            this.displayErrorMessage("Failed to connect to server: " + error.message);
         });
     };
 
@@ -140,8 +135,8 @@ class NotificationBoard extends BaseConComponent {
 
     renderMessage = ({ item }) => (
         <TouchableOpacity style={styles.itemContainer} onPress={() => this.confirmReading(item)} >
-            <Text style={{color: "#007BFF"}}>Sender: {item.sender}</Text>
-            <Text style={{fontSize:16}}>  {item.content}</Text>
+            <Text style={{ color: "#007BFF" }}>Sender: {item.sender}</Text>
+            <Text style={{ fontSize: 16 }}>  {item.content}</Text>
         </TouchableOpacity>
     );
 
@@ -152,7 +147,7 @@ class NotificationBoard extends BaseConComponent {
     render() {
         const { loans, messages, loading } = this.state;
         const { modalVisible, onRequestClose } = this.props;
-        if(loading) return (
+        if (loading) return (
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -173,29 +168,29 @@ class NotificationBoard extends BaseConComponent {
                 visible={modalVisible}
                 onRequestClose={onRequestClose}>
 
-            <View style={styles.container}>
-                <View style={styles.modalView} >
+                <View style={styles.container}>
+                    <View style={styles.modalView} >
 
-                <Text style={styles.title}>Upcoming Repayment</Text>
-                <FlatList
-                    style={styles.list}
-                    data={loans}
-                    renderItem={this.renderLoan}
-                    keyExtractor={item => item.id}
-                    ListEmptyComponent={() => this.renderEmpty("No upcoming repayment")}
-                />
-                <Text style={styles.title}>Notifications</Text>
-                <FlatList
-                    style={styles.list}
-                    data={messages}
-                    renderItem={this.renderMessage}
-                    keyExtractor={item => item.id.toString()}
-                    ListEmptyComponent={() => this.renderEmpty("No messages")}
-                />
-                <SingleButton title="Cancel" onPress={onRequestClose} disable={false}/>
+                        <Text style={styles.title}>Upcoming Repayment</Text>
+                        <FlatList
+                            style={styles.list}
+                            data={loans}
+                            renderItem={this.renderLoan}
+                            keyExtractor={item => item.id}
+                            ListEmptyComponent={() => this.renderEmpty("No upcoming repayment")}
+                        />
+                        <Text style={styles.title}>Notifications</Text>
+                        <FlatList
+                            style={styles.list}
+                            data={messages}
+                            renderItem={this.renderMessage}
+                            keyExtractor={item => item.id.toString()}
+                            ListEmptyComponent={() => this.renderEmpty("No messages")}
+                        />
+                        <SingleButton title="Cancel" onPress={onRequestClose} disable={false} />
 
+                    </View>
                 </View>
-            </View>
             </Modal>
         );
     }
@@ -216,8 +211,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         shadowColor: "#000",
         shadowOffset: {
-          width: 0,
-          height: 2
+            width: 0,
+            height: 2
         },
         shadowOpacity: 0.25,
         shadowRadius: 4,
@@ -239,7 +234,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         backgroundColor: '#F0F8FF',
     },
-    title:{
+    title: {
         fontSize: 20,
         fontWeight: 'bold',
         margin: 5,

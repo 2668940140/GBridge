@@ -37,8 +37,7 @@ class MarketComponent extends BaseConComponent {
     }
 
     fetchItems = async () => {
-        if(!this.transferLayer || this.transferLayer.checkConnection() === false) 
-        {
+        if (!this.transferLayer || this.transferLayer.checkConnection() === false) {
             console.log('Connection not established');
             return;
         }
@@ -46,12 +45,12 @@ class MarketComponent extends BaseConComponent {
         const { selectedFilters, type } = this.state;
         console.log(type);
         content = selectedFilters.length === 0 ? { post_type: type === 'loan' ? 'lend' : 'borrow' } :
-        {
-            $and:[ 
-                { post_type: type === 'loan' ? 'lend' : 'borrow' },
-                { $or: selectedFilters.map(filter => ({ method: filter })) }
-            ]
-        }
+            {
+                $and: [
+                    { post_type: type === 'loan' ? 'lend' : 'borrow' },
+                    { $or: selectedFilters.map(filter => ({ method: filter })) }
+                ]
+            }
         console.log(content);
         this.transferLayer.sendRequest({
             type: `get_market_posts`,
@@ -59,7 +58,7 @@ class MarketComponent extends BaseConComponent {
             extra: null
         }, response => {
             if (response.success) {
-                if(!response.content || response.content.length == 0) return;
+                if (!response.content || response.content.length == 0) return;
                 this.setState({ items: parseItem(response.content).sort((a, b) => b.score - a.score) });
             } else {
                 this.displayErrorMessage("Failed to fetch market items.");
@@ -70,7 +69,7 @@ class MarketComponent extends BaseConComponent {
     onSelectedItemsChange = (selectedItems) => {
         this.setState({ selectedFilters: selectedItems }, () => {
             this.fetchItems();
-        });       
+        });
     };
 
     handleItemPress = (item) => {
@@ -127,8 +126,8 @@ class MarketComponent extends BaseConComponent {
     };
 
     switchTab = (tab) => {
-        if(tab !== this.state.type){
-            this.setState({ type: tab },this.fetchItems);
+        if (tab !== this.state.type) {
+            this.setState({ type: tab }, this.fetchItems);
         }
     };
 
@@ -137,14 +136,14 @@ class MarketComponent extends BaseConComponent {
         return (
             <View style={styles.container}>
                 <View style={styles.tabContainer}>
-                    <TouchableOpacity 
-                        style={[styles.tab, type === 'loan' && styles.activeTab]} 
+                    <TouchableOpacity
+                        style={[styles.tab, type === 'loan' && styles.activeTab]}
                         onPress={() => this.switchTab('loan')}
                     >
                         <Text style={styles.tabText}>Loan</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={[styles.tab, type === 'invest' && styles.activeTab]} 
+                    <TouchableOpacity
+                        style={[styles.tab, type === 'invest' && styles.activeTab]}
                         onPress={() => this.switchTab('invest')}
                     >
                         <Text style={styles.tabText}>Invest</Text>
@@ -170,30 +169,30 @@ class MarketComponent extends BaseConComponent {
                         submitButtonColor="rgba(0, 123, 255, 0.8)"
                         submitButtonText="Apply"
                         styleItemsContainer={[styles.filterContainer,
-                            {backgroundColor: '#F0F8FF',}
+                        { backgroundColor: '#F0F8FF', }
                         ]}
-                        styleInputGroup={styles.inputContainer}  
-                        tagContainerStyle={styles.filterContainer}                
+                        styleInputGroup={styles.inputContainer}
+                        tagContainerStyle={styles.filterContainer}
                     />
                 </View>
                 <Text style={styles.title}>Post in the Market</Text>
                 <Text style={styles.info}>poster-score-interest-amount-duration{"(/month)"}</Text>
-                
+
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : "height"}
                     style={{ flex: 1 }}
                 >
-                <View style={styles.list}>
-                    <FlatList
-                    contentContainerStyle={styles.contentContainer}
-                    data={items}
-                    renderItem={this.renderItem}
-                    keyExtractor={item => item.id}
-                    ListEmptyComponent={this.renderEmptyComponent}
-                    />
-                </View>
+                    <View style={styles.list}>
+                        <FlatList
+                            contentContainerStyle={styles.contentContainer}
+                            data={items}
+                            renderItem={this.renderItem}
+                            keyExtractor={item => item.id}
+                            ListEmptyComponent={this.renderEmptyComponent}
+                        />
+                    </View>
                 </KeyboardAvoidingView>
-                { inputModalVisible && (
+                {inputModalVisible && (
                     <InputModal
                         modalVisible={inputModalVisible}
                         onConfirm={this.handlePost}
@@ -210,7 +209,7 @@ class MarketComponent extends BaseConComponent {
                     >
                         <View style={styles.centeredView}>
                             <View style={styles.modalView}>
-                            <Text style={styles.modalTitle}>Post Details</Text>
+                                <Text style={styles.modalTitle}>Post Details</Text>
                                 <Text style={styles.modalInfo}>Poster : {selectedItem.poster}</Text>
                                 <Text style={styles.modalInfo}>Interest : {selectedItem.interest} /mouth</Text>
                                 <Text style={styles.modalInfo}>Amount : {selectedItem.amount}</Text>
@@ -219,9 +218,9 @@ class MarketComponent extends BaseConComponent {
                                 <Text style={styles.modalInfo}>Score : {selectedItem.score}</Text>
                                 {selectedItem.extra && (
                                     <>
-                                    <Text style={styles.modalInfo}>Extra Info :</Text>
-                                    <Image source={{ uri: selectedItem.extra }} style={styles.image} />
-                                    </>                                  
+                                        <Text style={styles.modalInfo}>Extra Info :</Text>
+                                        <Image source={{ uri: selectedItem.extra }} style={styles.image} />
+                                    </>
                                 )}
                                 <Text style={styles.modalInfo}>Description</Text>
                                 <Text style={styles.modalDes}>{selectedItem.description}</Text>
@@ -265,27 +264,27 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         width: windowWidth - 50,
     },
-    filterContainer:{
+    filterContainer: {
         marginVertical: 5,
         borderRadius: 10,
         backgroundColor: 'rgba(0, 123, 255, 0.6)',
     },
-    inputContainer:{
-        margin:5,
+    inputContainer: {
+        margin: 5,
         borderBottomWidth: 2,
         borderBottomColor: '#808080'
     },
-    title:{
+    title: {
         fontSize: 20,
         color: 'black',
         fontWeight: 'bold',
         marginVertical: 5
     },
-    info:{
+    info: {
         fontSize: 16,
         marginVertical: 5
     },
-    list:{
+    list: {
         flex: 1,
         borderBlockColor: 'black',
         borderWidth: 1,
@@ -294,7 +293,7 @@ const styles = StyleSheet.create({
         marginVertical: 5
     },
     contentContainer: {
-        padding:5,
+        padding: 5,
         paddingBottom: 10,
     },
     emptyContainer: {
