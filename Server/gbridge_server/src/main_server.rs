@@ -46,7 +46,7 @@ impl MainServer {
 
     let mut bot_config = chatgpt::
     config::ModelConfiguration::default();
-    bot_config.engine = chatgpt::config::ChatGPTEngine::Gpt4;
+    bot_config.engine = chatgpt::config::ChatGPTEngine::Gpt35Turbo;
     let bot = ChatGPT::new_with_config(
     self.config.openai_key.clone(), bot_config).unwrap();
 
