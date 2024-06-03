@@ -107,7 +107,7 @@ class PersonalSettings extends BaseConInterface {
 
     componentWillUnmount() {
         AsynLoad('saveAccount').then((result) => {
-            if (result !== null && result !== 'false') {
+            if (result !== null && result === 'true') {
                 AsynSave('portrait', gUserIcon).then(() => {
                     console.log('Portrait saved');
                     super.componentWillUnmount();

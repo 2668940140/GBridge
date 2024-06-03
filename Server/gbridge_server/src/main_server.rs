@@ -166,6 +166,7 @@ impl MainServer {
       
       let request_json: Result<Json, _> = serde_json::from_str(&request);
       let ok;
+      let mut reqType = "error".to_string();
 
       if request_json.is_err()
       {
@@ -181,6 +182,7 @@ impl MainServer {
         else
         {
           let request_type = requset_type.unwrap().as_str().unwrap();
+          reqType = request_type.to_string();
 
           let response : Result<Json, ()> = match request_type {
             "register" => {
@@ -447,9 +449,11 @@ impl MainServer {
 
 
       if !ok {
-        let response = serde_json::json!({
+        let mut response = serde_json::json!({
           "status": 404,
         });
+        response.as_object_mut().unwrap().
+        insert(String::from("type"), json!(reqType.clone()));
         let response = serde_json::to_string(&response).unwrap();
         stream.write_all(response.as_bytes()).await.unwrap();
         println!("Error Response sent");
