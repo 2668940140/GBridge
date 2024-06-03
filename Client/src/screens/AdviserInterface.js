@@ -70,6 +70,10 @@ class AdviserInterface extends BaseConInterface {
 
     fetchWithNewConnection = () => {
         if (this.state.isLoading) return;
+        if (this.transferLayer.checkConnection()) {
+            this.transferLayer.closeConnection();
+            return;
+        }
         this.transferLayer.connect().then(() => {
             this.transferLayer.sendRequest(global.adviser, this.fetchAdvisorMessages);
         }).catch(() => {
@@ -208,6 +212,9 @@ class AdviserInterface extends BaseConInterface {
             return;
         }
         this.stopApp();
+        if (this.transferLayer.checkConnection()) {
+            this.transferLayer.closeConnection();
+        }
         this.setState({ isLoading: true }, () => {
             currentTime = new Date();
             let newMessage = {
@@ -231,7 +238,6 @@ class AdviserInterface extends BaseConInterface {
             this.transferLayer.connect().then(() => {
                 this.transferLayer.sendRequest(global.adviser, (response) => {
                     if (response.success) {
-                        console.log("login successfully.");
                         this.transferLayer.sendRequest({
                             message: inputText,
                             username: activeUser
@@ -239,8 +245,10 @@ class AdviserInterface extends BaseConInterface {
                     } else {
                         this.displayErrorMessage("Failed to login.");
                     }
-                    this.transferLayer.closeConnection();
-                    this.setState({ isLoading: false }, this.startApp);
+                    setTimeout(() => {
+                        this.transferLayer.closeConnection();
+                        this.setState({ isLoading: false }, this.startApp);
+                    }, 1000);
                 });
             }).catch(() => {
                 this.displayErrorMessage("Failed to connect to the server.");
