@@ -21,7 +21,7 @@ const RequestDetail = ({ visible, onRequestClose, request, onActionPress }) => {
     };
 
     const getCounterParty = () => {
-        if(request.post_type === 'borrow') {
+        if(request.borrower_username === gUsername) {
             return <Text style={styles.modalInfo}>Lender : {request.lender}</Text>
         } else {
             return <Text style={styles.modalInfo}>Borrower : {request.borrower}</Text>

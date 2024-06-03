@@ -25,8 +25,10 @@ class AdviserInterface extends BaseConInterface {
     handleAppStateChange = (nextAppState) => {
         if (this.state.appState.match(/inactive|background/) && nextAppState === 'active') {
             console.log('App has come to the foreground!');
-            if (this.startApp)
+            if (this.startApp) {
+                this.fetchWithNewConnection();
                 this.startApp();
+            }
         } else if (nextAppState.match(/inactive|background/)) {
             console.log('App has gone to the background');
             if (this.stopApp)
@@ -36,7 +38,6 @@ class AdviserInterface extends BaseConInterface {
     };
 
     startApp = () => {
-        this.fetchWithNewConnection();
         this.intervalId = setInterval(this.fetchWithNewConnection, 5000);
     };
 
@@ -48,12 +49,13 @@ class AdviserInterface extends BaseConInterface {
         this.keyboardDidShowListener = Keyboard.addListener(
             'keyboardDidShow',
             this.scrollToEnd,
-          );
-          this.keyboardDidHideListener = Keyboard.addListener(
+        );
+        this.keyboardDidHideListener = Keyboard.addListener(
             'keyboardDidHide',
             this.scrollToEnd,
-          );
-          this.changeAppState = AppState.addEventListener('change', this.handleAppStateChange);
+        );
+        this.changeAppState = AppState.addEventListener('change', this.handleAppStateChange);
+        this.fetchWithNewConnection();
         this.startApp();
     }
 
@@ -81,55 +83,41 @@ class AdviserInterface extends BaseConInterface {
 
     fetchAdvisorMessages = (response) => {
         if (response.success) {
-            if(response.type === 'adviser_login')
-            {
+            if (response.type === 'adviser_login') {
                 console.log("Adviser logged in successfully.");
                 return;
             }
 
-            if(response.content)
-            {
+            if (response.content) {
                 let { conversations } = this.state;
-            response.content.forEach((container) => {
-                const { username, msg, time } = container.content;
-                let newUser = conversations[username] ? false : true;
-                timeAll = new Date(time);
-                if(!newUser){
-                    let real_new = true;
-                conversations[username].forEach((message) => {
-                    console.log(message.text);
-                    if(message.text === msg)
-                    {
-                        real_new = false;
+                response.content.forEach((container) => {
+                    const { username, msg, time } = container.content;
+                    let newUser = conversations[username] ? false : true;
+                    timeAll = new Date(time);
+                    if (!newUser) {
+                        let real_new = true;
+                        conversations[username].forEach((message) => {
+                            console.log(message.text);
+                            if (message.text === msg) {
+                                real_new = false;
+                            }
+                        });
+                        if (!real_new)
+                            return;
                     }
+                    let newMessage = {
+                        id: newUser ? 1 : conversations[username].length + 1,
+                        date: timeAll.toLocaleDateString(),
+                        time: timeAll.toLocaleTimeString(),
+                        text: msg,
+                        user: username,
+                        opp: "adviser",
+                    };
+                    console.log(newMessage);
+                    conversations[username] = newUser ? [newMessage] : [...conversations[username], newMessage];
                 });
-                if(!real_new)
-                    return;
-                }
-                let newMessage ={
-                    id: newUser ? 1 : conversations[username].length + 1,
-                    date : timeAll.toLocaleDateString(),
-                    time : timeAll.toLocaleTimeString(),
-                    text: msg,
-                    user: username,
-                    opp: "adviser",
-                };
-                console.log(newMessage);
-                conversations[username] = newUser ? [newMessage] : [...conversations[username], newMessage];
-                /*
-                if (newUser) {
-                    this.setState(prevState => ({ conversations: { ...prevState.conversations, [username]: [newMessage] } }), this.scrollToEnd);
-                }
-                else{
-                    this.setState({ conversations: 
-                        {
-                            ...prevState.conversations,
-                            [username]: [...prevState.conversations[username], newMessage]}
-                        }, this.scrollToEnd);
-                }*/
-            });
 
-            this.setState({ conversations }, this.handleFetchOver);
+                this.setState({ conversations }, this.handleFetchOver);
             }
         } else {
             this.displayErrorMessage("Failed to login as adviser or fetch messages.");
@@ -152,34 +140,34 @@ class AdviserInterface extends BaseConInterface {
 
     renderMessageItem = ({ item }) => {
         const isUser = item.user === "adviser";
-        let icon = isUser ?  DefaultOppIcon : DefaultUserIcon;
+        let icon = isUser ? DefaultOppIcon : DefaultUserIcon;
         currentDate = new Date().toLocaleDateString();
-        if(isUser) {
+        if (isUser) {
             return (
                 <>
-                <Text style={styles.timeText}>
+                    <Text style={styles.timeText}>
                         {item.date != currentDate && (item.date + " ")}
                         {item.time}
-                </Text>
-                <Text style={[styles.infoText, {textAlign : 'right'} ]}>You</Text>
-                <View style={[styles.messageContainer, styles.userMessage]}>
-                    <Text style={[styles.messageText, {backgroundColor : "#99CCFF"}]}>{item.text}</Text>
-                    <Image source={icon} style={styles.avatar} />
-                </View>
+                    </Text>
+                    <Text style={[styles.infoText, { textAlign: 'right' }]}>You</Text>
+                    <View style={[styles.messageContainer, styles.userMessage]}>
+                        <Text style={[styles.messageText, { backgroundColor: "#99CCFF" }]}>{item.text}</Text>
+                        <Image source={icon} style={styles.avatar} />
+                    </View>
                 </>
             );
         }
         return (
             <>
-            <Text style={styles.timeText}>
+                <Text style={styles.timeText}>
                     {item.date != currentDate && (item.date + " ")}
                     {item.time}
-            </Text>
-            <Text style={[styles.infoText]}>{item.user}</Text>
-            <View style={[styles.messageContainer,styles.responseMessage]}>
-                <Image source={icon} style={styles.avatar} />
-                <Text style={[styles.messageText, {backgroundColor : "white"}]}>{item.text}</Text>
-            </View>
+                </Text>
+                <Text style={[styles.infoText]}>{item.user}</Text>
+                <View style={[styles.messageContainer, styles.responseMessage]}>
+                    <Image source={icon} style={styles.avatar} />
+                    <Text style={[styles.messageText, { backgroundColor: "white" }]}>{item.text}</Text>
+                </View>
             </>
         );
     };
@@ -192,89 +180,84 @@ class AdviserInterface extends BaseConInterface {
                 transparent={true}
                 visible={showSidebar}
                 onRequestClose={this.toggleSidebar}>
-            <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-                <FlatList
-                    data={Object.keys(conversations) }
-                    renderItem={({ item }) => (
-                        <TouchableOpacity style={styles.userItem} onPress={() => {
-                            this.setActiveUser(item);
-                            this.toggleSidebar();
-                        }}>
-                            <Text style={{fontSize:18,}}>{item}</Text>
-                        </TouchableOpacity>
-                    )}
-                    keyExtractor={item => item}
-                    ListEmptyComponent={<Text style={{ textAlign: 'center', fontSize:30 }}>No users</Text>}
-                />
-            </View>
-            </View>
+                <View style={styles.centeredView}>
+                    <View style={styles.modalView}>
+                        <FlatList
+                            data={Object.keys(conversations)}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity style={styles.userItem} onPress={() => {
+                                    this.setActiveUser(item);
+                                    this.toggleSidebar();
+                                }}>
+                                    <Text style={{ fontSize: 18, }}>{item}</Text>
+                                </TouchableOpacity>
+                            )}
+                            keyExtractor={item => item}
+                            ListEmptyComponent={<Text style={{ textAlign: 'center', fontSize: 30 }}>No users</Text>}
+                        />
+                    </View>
+                </View>
             </Modal>
         );
     };
 
     sendMessage = () => {
         const { activeUser, inputText, conversations } = this.state;
-        if(inputText.trim() === ''){
+        if (inputText.trim() === '') {
             this.displayErrorMessage("Message cannot be empty.");
             return;
         }
-        this.setState({ isLoading: true }, () =>{
+        this.stopApp();
+        this.setState({ isLoading: true }, () => {
             currentTime = new Date();
-        let newMessage = { 
-            id: conversations[activeUser].length + 1,
-            date: currentTime.toLocaleDateString(),
-            time: currentTime.toLocaleTimeString(),
-            text: inputText,
-            user: "adviser"
-        };
+            let newMessage = {
+                id: conversations[activeUser].length + 1,
+                date: currentTime.toLocaleDateString(),
+                time: currentTime.toLocaleTimeString(),
+                text: inputText,
+                user: "adviser"
+            };
 
-        // Add the new message to the state
-        this.setState(prevState => ({
-            conversations: {
-                ...prevState.conversations,
-                [activeUser]: [...prevState.conversations[activeUser], newMessage]
-            },
-            inputText: '', // Clear the input box
-            isLoading: false
-        }), this.scrollToEnd);
+            // Add the new message to the state
+            this.setState(prevState => ({
+                conversations: {
+                    ...prevState.conversations,
+                    [activeUser]: [...prevState.conversations[activeUser], newMessage]
+                },
+                inputText: '', // Clear the input box
+                isLoading: false
+            }), this.scrollToEnd);
 
-        this.transferLayer.connect().then(() => {
-            this.transferLayer.sendRequest(global.adviser, (response) => {
-                if (response.success) {
-                    console.log("Message sent successfully.");
-                    this.transferLayer.sendRequest({
-                        message: inputText,
-                        username: activeUser
-                    }, (response) => {
-                        if (response.success) {
-                            console.log("Message sent successfully.");
-                        } else {
-                            this.displayErrorMessage("Failed to send message.");
-                        }
-                        this.setState({ isLoading: false });
-                    });
-                } else {
-                    this.displayErrorMessage("Failed to login.");
-                    this.setState({ isLoading: false });
-                }
+            this.transferLayer.connect().then(() => {
+                this.transferLayer.sendRequest(global.adviser, (response) => {
+                    if (response.success) {
+                        console.log("login successfully.");
+                        this.transferLayer.sendRequest({
+                            message: inputText,
+                            username: activeUser
+                        });
+                    } else {
+                        this.displayErrorMessage("Failed to login.");
+                    }
+                    this.transferLayer.closeConnection();
+                    this.setState({ isLoading: false }, this.startApp);
+                });
+            }).catch(() => {
+                this.displayErrorMessage("Failed to connect to the server.");
+                this.setState({ isLoading: false }, this.startApp);
             });
-        }).catch(() => {
-            this.displayErrorMessage("Failed to connect to the server.");
-            this.setState({ isLoading: false });
         });
-    });
-};
+    };
 
     render() {
-        const { activeUser, conversations, showSidebar,isLoading, inputText } = this.state;
+        const { activeUser, conversations, showSidebar, isLoading, inputText } = this.state;
         return (
             <KeyboardAvoidingView style={styles.container} behavior="padding">
                 {showSidebar && this.renderUserList()}
-                <View style={{flexDirection: 'row', alignItems : 'center', justifyContent : 'center'}} >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }} >
                     <Text style={styles.title}>{this.props.chatType} Chat with </Text>
                     <TouchableOpacity onPress={this.toggleSidebar}>
-                        <Text style={[styles.title, {color: '#007BFF'}]}>{activeUser || 'Select a User'}</Text>
+                        <Text style={[styles.title, { color: '#007BFF' }]}>{activeUser || 'Select a User'}</Text>
                     </TouchableOpacity>
                 </View>
                 <FlatList
@@ -284,7 +267,7 @@ class AdviserInterface extends BaseConInterface {
                     renderItem={this.renderMessageItem}
                     keyExtractor={item => item.id.toString()}
                     contentContainerStyle={styles.messageList}
-                    ListEmptyComponent={<Text style={{ textAlign: 'center', fontSize:30 }}>No messages</Text>}  
+                    ListEmptyComponent={<Text style={{ textAlign: 'center', fontSize: 30 }}>No messages</Text>}
                 />
                 <View style={styles.inputContainer}>
                     <TextInput
@@ -315,7 +298,7 @@ const styles = StyleSheet.create({
         marginBottom: 50,
         width: '40%',
     },
-        modalView: {
+    modalView: {
         flex: 1,
         backgroundColor: "#f0f0f0",
         borderRadius: 20,
@@ -323,13 +306,13 @@ const styles = StyleSheet.create({
         alignItems: "left",
         shadowColor: "#000",
         shadowOffset: {
-          width: 0,
-          height: 2
+            width: 0,
+            height: 2
         },
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5
-      },
+    },
     title: {
         fontSize: 20,
         fontWeight: 'bold',
@@ -367,7 +350,7 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         shadowColor: '#000',
         shadowOffset: { height: 2, width: 0 },
-        elevation: 4, 
+        elevation: 4,
     },
     infoText: {
         fontSize: 10,
@@ -389,7 +372,7 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         padding: 10,
         fontSize: 16,
-        marginTop:10,
+        marginTop: 10,
     },
     userItem: {
         padding: 10,

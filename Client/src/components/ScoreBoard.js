@@ -45,6 +45,7 @@ class ScoreBoard extends BaseConComponent {
             color.r = Math.floor((1 - response.content.score) * this.red.r + response.content.score * this.blue.r);
             color.g = Math.floor((1 - response.content.score) * this.red.g + response.content.score * this.blue.g);
             color.b = Math.floor((1 - response.content.score) * this.red.b + response.content.score * this.blue.b);
+            
             this.setState({
                 score: response.content.score,
                 color: color,
@@ -68,7 +69,7 @@ class ScoreBoard extends BaseConComponent {
         return (
             <TouchableOpacity style={styles.container} onPress={() => navigation.navigate(targetScreen)}>
                 <Text style={styles.scoreLabel}>Your Score:</Text>
-                <Text style={[styles.score, {color: {rgba}}]}>{score.toFixed(2)}/1.00</Text>
+                <Text style={[styles.score, {color: rgba}]}>{score.toFixed(2)}/1.00</Text>
             </TouchableOpacity>
         );
     }

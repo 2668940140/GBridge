@@ -37,7 +37,7 @@ class TransferLayer {
                     this.isConnected = false;
                     if (this.retryCount < this.maxRetries) {
                         this.retryCount++;
-                        console.log(`Retry ${this.retryCount}/${this.maxRetries} in ${this.retryDelay/1000} seconds...`);
+                        console.log(`Retry ${this.retryCount}/${this.maxRetries} in ${this.retryDelay / 1000} seconds...`);
                         setTimeout(() => this.connect().then(resolve).catch(reject), this.retryDelay);
                     } else {
                         console.log('Max retries reached, giving up.');
@@ -72,14 +72,12 @@ class TransferLayer {
             console.log('Received data:', this.dataBuffer);
             const adviser_success = '{"type":"adviser_login","status":200}';
             const i = this.dataBuffer.indexOf(adviser_success);
-            if(i !== -1)
-            {
-                if(this.dataBuffer.slice(i, i+adviser_success.length) === this.dataBuffer)
-                {
+            if (i !== -1) {
+                if (this.dataBuffer.slice(i, i + adviser_success.length) === this.dataBuffer) {
                     this.dataBuffer = '';
                     return;
                 }
-                if(this.dataBuffer.slice(i, i+adviser_success.length) === adviser_success)
+                if (this.dataBuffer.slice(i, i + adviser_success.length) === adviser_success)
                     this.dataBuffer = this.dataBuffer.slice(adviser_success.length + i);
             }
 
@@ -89,22 +87,22 @@ class TransferLayer {
                 console.log('Received:', jsonResponse);
                 this.dataBuffer = ''; // Clear the buffer after parsing
 
-                if(jsonResponse.status !== 200) {
+                if (jsonResponse.status !== 200) {
                     jsonResponse.success = false;
                 }
-                else{
+                else {
                     jsonResponse.success = true;
                     // Check for session expiry
 
-                if (jsonResponse.sessionExpired) {
-                    if (this.onSessionExpired) {
-                        this.onSessionExpired();
+                    if (jsonResponse.sessionExpired) {
+                        if (this.onSessionExpired) {
+                            this.onSessionExpired();
+                        }
+                        // Check for session update
+                        if (jsonResponse.user) {
+                            sessionToken = jsonResponse.user;
+                        }
                     }
-                    // Check for session update
-                    if (jsonResponse.user) {
-                        sessionToken = jsonResponse.user;
-                    }
-                }
                 }
 
                 if (this.onResponseReceived) {
@@ -119,8 +117,8 @@ class TransferLayer {
     async sendRequest(requestObject, onResponseReceived) {
         requestObject.sessionToken = sessionToken
         requestObject.preserved = requestObject.type;
-        
-        if(onResponseReceived)
+
+        if (onResponseReceived)
             this.onResponseReceived = onResponseReceived;
 
         if (!this.socket || this.socket.destroyed || this.socket.closing) {
@@ -148,6 +146,7 @@ class TransferLayer {
         if (this.socket) {
             this.socket.destroy();
             this.socket = null;
+            this.isConnected = false;
         }
     }
 }

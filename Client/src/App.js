@@ -19,7 +19,6 @@ import { resetNavigator } from './utils/ResetNavigator';
 import { IPSetting, LogoutButton } from './components/MyButton';
 import Global from './config/Global';
 import SplashScreen from "react-native-splash-screen";
-import { AsynSave } from './utils/AsynSL';
 
 const Stack = createNativeStackNavigator();
 
@@ -57,13 +56,6 @@ class App extends React.Component{
 
   componentDidMount() {
     SplashScreen.hide();
-  }
-
-  componentWillUnmount() {
-    AsynSave('portrait', gUserIcon).then(() => {
-      console.log('Portrait saved');
-      super.componentWillUnmount();
-    });
   }
 
   render(){

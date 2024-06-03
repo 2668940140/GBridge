@@ -660,7 +660,7 @@ impl main_server::MainServer
     }
   
     return Ok(json!({
-      "type": "get_market_info",
+      "type": "get_market_posts",
       "status": 200,
       "preserved": preserved,
       "content": content // This is now a Vec<Json>
