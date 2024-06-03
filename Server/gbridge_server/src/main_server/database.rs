@@ -1,5 +1,4 @@
 use std::sync::Arc;
-
 use futures::StreamExt;
 use mongodb::{ 
 	bson::{doc, Document},
