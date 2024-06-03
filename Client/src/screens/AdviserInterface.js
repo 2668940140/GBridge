@@ -101,8 +101,7 @@ class AdviserInterface extends BaseConInterface {
                     if (!newUser) {
                         let real_new = true;
                         conversations[username].forEach((message) => {
-                            console.log(message.text);
-                            if (message.text === msg && message.time === time) {
+                            if (message.text === msg && message.time === timeAll.toLocaleTimeString()) {
                                 real_new = false;
                             }
                         });
