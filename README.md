@@ -1,8 +1,11 @@
 # GBridge
 
-# Description
+## Description
+P2P loan platform
+GPT+ (API&MongoDB config not included)
 
 # Client
+writen in React Native, with a release version apk.
 
 ## Requirements:
 - Nodejs
@@ -11,7 +14,8 @@
 
 - Android SDK
 
-You can refer to https://reactnative.dev/docs/environment-setup?guide=native&package-manager=npm
-
-
 # Server
+writen in Rust, sourse code only
+
+## Requirements:
+- Rustc
