@@ -14,7 +14,7 @@ class NotificationBoard extends BaseConComponent {
         this.state = {
             loans: [],
             messages: [],
-            loading: true,
+            loading: false,
             force: false
         };
     }
@@ -71,6 +71,8 @@ class NotificationBoard extends BaseConComponent {
                 this.setState({ messages: messages }, () => {
                     this.setState({ loading: false });
                     console.log('Fetched messages');
+                    console.log(this.state.force || this.state.messages.length > 0 ||
+                        this.state.loans.length > 0);
                     this.props.onRequestShow(this.state.force || this.state.messages.length > 0 ||
                         this.state.loans.length > 0
                     );
@@ -85,6 +87,9 @@ class NotificationBoard extends BaseConComponent {
     };
 
     fetchLoans = () => {
+        if (!this.state.force)
+            this.props.onRequestShow(false);
+        this.setState({ loading: true });
         this.establishConnection().then(() => {
             this.transferLayer.sendRequest({
                 type: "get_user_deals",

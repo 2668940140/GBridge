@@ -230,7 +230,7 @@ class AdviserChatInterface extends ChatInterface {
                             user: message.role === 'user' ? gUsername : this.opp
                         };
                     });
-                    
+
                     this.setState(prevState => ({
                         messages: [...prevState.messages, ...newMessages]
                     }), this.scrollToEnd);
